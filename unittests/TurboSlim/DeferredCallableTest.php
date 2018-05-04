@@ -2,7 +2,6 @@
 namespace TurboSlim\Tests;
 
 use TurboSlim\DeferredCallable;
-use Closure;
 
 class DeferredCallableTest extends \PHPUnit\Framework\TestCase
 {
@@ -42,7 +41,7 @@ class DeferredCallableTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, $actual);
 
         /* Trigger (func->op_array.fn_flags & ZEND_ACC_NO_RT_ARENA) branch */
-        $callable = Closure::bind($callable, $container, \PHPUnit\Framework\TestCase::class);
+        $callable = \Closure::bind($callable, $container, \PHPUnit\Framework\TestCase::class);
 
         $c = new DeferredCallable($callable, null);
         $actual   = $c();

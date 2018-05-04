@@ -1,10 +1,13 @@
 #include "deferredcallable.h"
 
-#include <Zend/zend_inheritance.h>
 #include <Zend/zend_closures.h>
+#include <Zend/zend_inheritance.h>
+#include <Zend/zend_interfaces.h>
 #include "traits/callableresolverawaretrait.h"
 #include "psr11.h"
 #include "utils.h"
+
+#include <Zend/zend_compile.h>
 
 zend_class_entry* ce_TurboSlim_DeferredCallable = NULL;
 
@@ -135,19 +138,14 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
     if (IS_OBJECT == Z_TYPE(callable) && instanceof_function(Z_OBJCE(callable), zend_ce_closure)) {
         zval new_callable;
 
-    /* The code is equivalent for $callable = $callable->bindTo($this->container); */
+        /* The code is equivalent for $callable = $callable->bindTo($this->container); */
+#if PHP_VERSION_ID < 70114
+        zend_call_method(&callable, zend_ce_closure, NULL, ZEND_STRL("bindto"), &new_callable, 1, &v->container, NULL);
+#else
         zend_function* func            = (zend_function*)zend_get_closure_method_def(&callable);
-        zend_class_entry* called_scope = IS_OBJECT == Z_TYPE(v->container) ? Z_OBJCE(v->container) : func->common.scope;
+        zend_class_entry* called_scope = (IS_OBJECT == Z_TYPE(v->container)) ? Z_OBJCE(v->container) : func->common.scope;
         zend_class_entry* ce           = func->common.scope;
         zend_create_closure(&new_callable, func, ce, called_scope, &v->container);
-
-#if PHP_VERSION_ID < 70100
-        if (ZEND_USER_CODE(func->type) && (func->op_array.fn_flags & ZEND_ACC_NO_RT_ARENA)) {
-            zend_function* func = (zend_function*)zend_get_closure_method_def(&new_callable);
-            func->op_array.run_time_cache = emalloc(func->op_array.cache_size);
-            memset(func->op_array.run_time_cache, 0, func->op_array.cache_size);
-            func->op_array.fn_flags |= ZEND_ACC_NO_RT_ARENA;
-        }
 #endif
 
         zval_ptr_dtor(&callable);
@@ -163,10 +161,12 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
         efree(error);
         return;
     }
-    else if (UNEXPECTED(error != NULL)) {
+
+    if (UNEXPECTED(error != NULL)) {
         zend_error(E_DEPRECATED, "%s", error);
         efree(error);
         if (UNEXPECTED(EG(exception))) {
+            zval_ptr_dtor(&callable);
             return;
         }
     }
