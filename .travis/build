@@ -15,6 +15,8 @@
 		CFLAGS="-O0 -Wall"
 		CONFIGURE="scan-build ./configure"
 		MAKE="scan-build make"
+	elif [ "x$1" = "xdebug" ]; then
+		CFLAGS="-O0 -g3 -Wall"
 	elif [ "x$1" = "xrelease" ]; then
 		CFLAGS="-O2 -Wall -flto"
 		LDFLAGS="-O2 -flto"
