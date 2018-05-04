@@ -30,6 +30,7 @@ before_script:
   - ./.travis/build debug
 
 script:
+  - phpenv config-rm xdebug.ini || true
   - .travis/run-tests valgrind
   - .travis/run-tests
 
