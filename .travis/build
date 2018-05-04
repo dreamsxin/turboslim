@@ -1,7 +1,7 @@
 #!/bin/sh
 
 (
-	cd "$(dirname $(realpath -qe $0))/../"
+	cd "$(dirname $(redlink -qe $0))/../"
 
 	CONFIGURE="./configure"
 	MAKE="make"
