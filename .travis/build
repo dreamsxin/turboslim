@@ -28,7 +28,7 @@
 	export EXTRA_LDFLAGS
 
 	phpize && $CONFIGURE && $MAKE -j$(getconf _NPROCESSORS_ONLN) -B && make install
-	phpenv config-add turboslim.ini
+	phpenv config-add .travis/turboslim.ini
 )
 
 exit $?
