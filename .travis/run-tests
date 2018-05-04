@@ -1,0 +1,29 @@
+#!/bin/sh
+
+(
+	cd "$(dirname $(realpath -qe $0))/../"
+	make install
+	if [ "x$1" = "xvalgrind" ]; then
+		USE_ZEND_ALLOC=0
+		ZEND_DONT_UNLOAD_MODULES=1
+		export USE_ZEND_ALLOC
+		export ZEND_DONT_UNLOAD_MODULES
+		valgrind --leak-check=full --track-origins=yes --num-callers=30 $(phpenv which php) unittests/phpunit
+	elif [ "x$1" = "xphp" ]; then
+		NO_INTERACTION=1
+		TESTS=
+		export NO_INTERACTION
+		export TESTS
+		make test
+	elif [ "x$1" = "xphpvg" ]; then
+		NO_INTERACTION=1
+		TESTS=-m
+		export NO_INTERACTION
+		export TESTS
+		make test
+	else
+		$(phpenv which php) unittests/phpunit
+	fi
+)
+
+exit $?

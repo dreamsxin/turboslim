@@ -1,0 +1,31 @@
+{
+    "bootstrap": "vendor/autoload.php",
+    "path": "unittests/benchmarks/",
+    "retry_threshold": 3,
+    "reports": {
+        "main": {
+            "title": "Time",
+            "generator": "table",
+            "compare": "subject",
+            "compare_fields": [ "mode" ],
+            "break": ["groups"],
+            "cols": ["benchmark"]
+        },
+        "environment": {
+            "title": "Environment",
+            "extends": "env"
+        },
+        "detail": {
+            "title": "Detail by subject",
+            "description": "Sorted by mode",
+            "extends": "aggregate",
+            "break": [ "subject" ],
+            "cols": ["benchmark", "mem_peak", "best", "mean", "mode", "worst", "stdev", "rstdev", "diff"],
+            "sort": { "mode": "asc" }
+        },
+        "all": {
+            "generator": "composite",
+            "reports": ["environment", "main", "detail"]
+        }
+    }
+}

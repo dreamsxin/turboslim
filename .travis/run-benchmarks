@@ -1,0 +1,4 @@
+#!/bin/sh
+
+(cd "$(dirname $(realpath -qe $0))/../" && make install && vendor/bin/phpbench run --report=aggregate)
+exit $?

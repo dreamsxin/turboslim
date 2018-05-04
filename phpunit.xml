@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="phpunit.xsd"
+    bootstrap="unittests/bootstrap.php"
+    colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    verbose="true"
+    stopOnFailure="false"
+    processIsolation="false"
+    backupGlobals="false"
+    syntaxCheck="true"
+>
+	<testsuites>
+		<testsuite name="TurboSlim Unit Tests">
+			<directory suffix="Test.php">unittests/TurboSlim</directory>
+		</testsuite>
+
+		<testsuite name="Slim Test Suite">
+			<directory suffix="Test.php">unittests/Slim</directory>
+		</testsuite>
+
+		<testsuite name="PHPT Test Suite">
+			<directory suffix=".phpt">tests</directory>
+		</testsuite>
+	</testsuites>
+
+	<listeners>
+		<listener class="LCovTestListener" file="./unittests/LCovTestListener.php"/>
+	</listeners>
+</phpunit>

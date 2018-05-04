@@ -1,0 +1,32 @@
+#!/bin/sh
+
+(
+	cd "$(dirname $(realpath -qe $0))/../"
+
+	CONFIGURE="./configure"
+	MAKE="make"
+
+	if [ "x$1" = "xcoverage" ]; then
+		CPPFLAGS="-DCOVERAGE"
+		CFLAGS="-O0 -g3 -Wall --coverage"
+		LDFLAGS="--coverage"
+		EXTRA_LDFLAGS='-precious-files-regex \.gcno\$$'
+	elif [ "x$1" = "xscanbuild" ]; then
+		CFLAGS="-O0 -Wall"
+		CONFIGURE="scan-build ./configure"
+		MAKE="scan-build make"
+	elif [ "x$1" = "xrelease" ]; then
+		CFLAGS="-O2 -Wall -flto"
+		LDFLAGS="-O2 -flto"
+	fi
+
+	export CPPFLAGS
+	export CFLAGS
+	export LDFLAGS
+	export EXTRA_LDFLAGS
+
+	phpize && $CONFIGURE && $MAKE -j$(getconf _NPROCESSORS_ONLN) -B && make install
+	phpenv config-add turboslim.ini
+)
+
+exit $?

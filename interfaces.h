@@ -1,0 +1,18 @@
+#ifndef TURBOSLIM_INTERFACES_H
+#define TURBOSLIM_INTERFACES_H
+
+#include "php_turboslim.h"
+
+TURBOSLIM_VISIBILITY_HIDDEN int init_interfaces();
+
+extern zend_class_entry* ce_TurboSlim_Interfaces_CallableResolverInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_CollectionInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_InvocationStrategyInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_RouteGroupInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_RouteInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_RouterInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_Http_CookiesInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_Http_EnvironmentInterface;
+extern zend_class_entry* ce_TurboSlim_Interfaces_Http_HeadersInterface;
+
+#endif /* TURBOSLIM_INTERFACES_H */
