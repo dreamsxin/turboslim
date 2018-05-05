@@ -133,13 +133,18 @@ ZEND_END_ARG_INFO()
 /* mixed func(mixed $name, array $data = null, array $queryParams = null) */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_routerinterface_pathfor, 0, ZEND_RETURN_VALUE, 1)
     ZEND_ARG_INFO(0, name)
-    ZEND_ARG_ARRAY_INFO(0, data, 1)
-    ZEND_ARG_ARRAY_INFO(0, queryParams, 1)
+    ZEND_ARG_ARRAY_INFO(0, data, 0)
+    ZEND_ARG_ARRAY_INFO(0, queryParams, 0)
+ZEND_END_ARG_INFO()
+
+/* mixed func(array $settings = null) */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_http_cookiesinterface_parseheader, 0, ZEND_RETURN_VALUE, 1)
+    ZEND_ARG_INFO(0, header)
 ZEND_END_ARG_INFO()
 
 /* mixed func(array $settings = null) */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_environmentinterface_mock, 0, ZEND_RETURN_VALUE, 0)
-    ZEND_ARG_ARRAY_INFO(0, settings, 1)
+    ZEND_ARG_ARRAY_INFO(0, settings, 0)
 ZEND_END_ARG_INFO()
 
 /*
@@ -272,7 +277,7 @@ static const zend_function_entry fe_TurboSlim_Interfaces_Http_CookiesInterface[]
     PHP_ABSTRACT_ME(TurboSlim_Interfaces_Http_CookiesInterface, get,       arginfo_kd)
     PHP_ABSTRACT_ME(TurboSlim_Interfaces_Http_CookiesInterface, set,       arginfo_kv)
     PHP_ABSTRACT_ME(TurboSlim_Interfaces_Http_CookiesInterface, toHeaders, arginfo_empty)
-    ZEND_FENTRY(parseHeader, NULL, arginfo_empty, ZEND_ACC_PUBLIC | ZEND_ACC_ABSTRACT | ZEND_ACC_STATIC)
+    ZEND_FENTRY(parseHeader, NULL, arginfo_http_cookiesinterface_parseheader, ZEND_ACC_PUBLIC | ZEND_ACC_ABSTRACT | ZEND_ACC_STATIC)
     PHP_FE_END
 };
 
