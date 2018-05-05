@@ -5,7 +5,7 @@ Test keys()
 --FILE--
 <?php
 
-$p = new TurboSlim\Container();
+$p = new TurboSlim\Container(null, false);
 
 var_dump($p->keys());
 

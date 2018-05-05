@@ -4,8 +4,10 @@
 #include <Zend/zend_exceptions.h>
 #include <Zend/zend_interfaces.h>
 #include <ext/spl/spl_exceptions.h>
+#include <ext/standard/php_array.h>
 #include "exception/containerexception.h"
 #include "exception/containervaluenotfoundexception.h"
+#include "fastcollection.h"
 #include "internal/closure.h"
 #include "internal/container.h"
 #include "interfaces.h"
@@ -318,21 +320,86 @@ static int has_dimension(zval* object, zval* member, int check_empty)
     zval* result      = array_zval_offset_get(&v->items, member);
 
     if (check_empty && result) {
-        return i_zend_is_true(result);
+        assert(Z_TYPE_P(result) == IS_PTR); /* LCOV_EXCL_BR_LINE */
+        definition_t* d = (definition_t*)Z_PTR_P(result);
+        zval* value;
+        switch (d->type) {
+            case def_parameter:
+            case def_callable:
+            case def_shared:
+            case def_factory:
+            default:
+                value = &d->callable;
+                break;
+
+            case def_resolved:
+                value = &d->z;
+                break;
+        }
+
+        return zend_is_true(value);
     }
 
     return result != NULL;
+}
+
+static zval* read_property(zval* object, zval* member, int type, void** cache_slot, zval *rv)
+{
+    if (UNEXPECTED(!member || Z_TYPE_P(member) == IS_NULL)) {
+        member = &zundef;
+    }
+
+    zend_object* zobj = Z_OBJ_P(object);
+    container_t* v    = container_from_zobj(zobj);
+    return get_item(v, object, member, type, rv);
+}
+
+static int has_property(zval* object, zval* member, int has_set_exists, void **cache_slot)
+{
+    zend_object* zobj = Z_OBJ_P(object);
+    container_t* v    = container_from_zobj(zobj);
+    zval* result      = array_zval_offset_get(&v->items, member);
+
+    if (result) {
+        assert(Z_TYPE_P(result) == IS_PTR); /* LCOV_EXCL_BR_LINE */
+        definition_t* d = (definition_t*)Z_PTR_P(result);
+        zval* value;
+        switch (d->type) {
+            case def_parameter:
+            case def_callable:
+            case def_shared:
+            case def_factory:
+            default:
+                value = &d->callable;
+                break;
+
+            case def_resolved:
+                value = &d->z;
+                break;
+        }
+
+        switch (has_set_exists) {
+            /* HAS: whether property exists and is not NULL */
+            case 0: return Z_TYPE_P(value) != IS_NULL;
+            /* SET: whether property exists and is true */
+            default:
+            case 1:
+                return zend_is_true(value);
+            /* EXISTS: whether property exists */
+            case 2: return 1;
+        }
+    }
+
+    return 0;
 }
 
 static void handle_inheritance(zend_class_entry* ce)
 {
     if (ce != ce_TurboSlim_Container) {
         zend_function* f1;
-        zend_function* f2;
 
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetget"));
-        f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("get"));
-        if (f1->common.scope == ce_TurboSlim_Container && f2->common.scope == ce_TurboSlim_Container) {
+        if (f1->common.scope == ce_TurboSlim_Container) {
             handlers.read_dimension  = read_dimension;
         }
 
@@ -347,12 +414,19 @@ static void handle_inheritance(zend_class_entry* ce)
         }
 
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetexists"));
-        f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("has"));
-        if (f1->common.scope == ce_TurboSlim_Container && f2->common.scope == ce_TurboSlim_Container) {
+        if (f1->common.scope == ce_TurboSlim_Container) {
             handlers.has_dimension   = has_dimension;
+        }
+
+        f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetunset"));
+        if (f1->common.scope == ce_TurboSlim_Container) {
+            handlers.unset_dimension = unset_dimension;
         }
     }
     else {
+        handlers.read_property   = read_property;
+        handlers.has_property    = has_property;
+
         /* ArrayAccess */
         handlers.read_dimension  = read_dimension;
         handlers.write_dimension = write_dimension;
@@ -396,21 +470,76 @@ static int compare_objects(zval* object1, zval* object2)
     return 1;
 }
 
+static void register_default_services(container_t* c, zval* this_ptr, zval* user_settings)
+{
+    zval settings;
+
+    if (!user_settings || Z_TYPE_P(user_settings) == IS_ARRAY) {
+        array_init_size(&settings, 7);
+        zend_hash_copy(Z_ARRVAL(settings), Z_ARRVAL(container_default_settings), zval_add_ref);
+    }
+    else {
+        int n = 7 + zend_hash_num_elements(Z_ARRVAL_P(user_settings));
+        array_init_size(&settings, n);
+        zend_hash_copy(Z_ARRVAL(settings), Z_ARRVAL(container_default_settings), zval_add_ref);
+        php_array_merge(Z_ARRVAL(settings), Z_ARRVAL_P(user_settings));
+    }
+
+    zval fc;
+    turboslim_create_FastCollection(&fc, &settings);
+
+    zval key;
+    ZVAL_NEW_STR(&key, str_settings);
+    set_item(c, &key, &fc);
+
+    zval_ptr_dtor(&key);
+    zval_ptr_dtor(&settings);
+    zval_ptr_dtor(&fc);
+
+    zend_string* cn      = zend_string_init(ZEND_STRL("Slim\\DefaultServicesProvider"), 0);
+    zend_class_entry* ce = zend_lookup_class(cn);
+    zend_string_release(cn);
+
+    if (ce) {
+        zval prov;
+        object_init_ex(&prov, ce);
+
+        zend_function* ctor = Z_OBJ_HANDLER(prov, get_constructor)(Z_OBJ(prov));
+        if (UNEXPECTED(EG(exception))) {
+            zval_ptr_dtor(&prov);
+            return;
+        }
+
+        if (ctor) {
+            zend_call_method(&prov, ce, &ctor, ZSTR_VAL(ctor->common.function_name), ZSTR_LEN(ctor->common.function_name), NULL, 0, NULL, NULL);
+            if (UNEXPECTED(EG(exception))) {
+                zval_ptr_dtor(&prov);
+                return;
+            }
+        }
+
+        zend_call_method(&prov, ce, NULL, ZEND_STRL("register"), NULL, 1, this_ptr, NULL);
+        zval_ptr_dtor(&prov);
+    }
+}
+
 static PHP_METHOD(TurboSlim_Container, __construct)
 {
-    HashTable* values = NULL;
+    HashTable* values   = NULL;
+    zval* user_settings = NULL;
+    zend_bool set_defaults = 1;
 
     /* LCOV_EXCL_BR_START */
-    ZEND_PARSE_PARAMETERS_START(0, 1)
+    ZEND_PARSE_PARAMETERS_START(0, 2)
         Z_PARAM_OPTIONAL
-        Z_PARAM_ARRAY_HT_EX(values, 1, 0);
+        Z_PARAM_ARRAY_HT_EX(values, 1, 0)
+        Z_PARAM_BOOL(set_defaults)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
+    zval* this_ptr = get_this(execute_data);
+    container_t* c = container_from_zobj(Z_OBJ_P(this_ptr));
     if (values && zend_hash_num_elements(values) > 0) {
-        zval* this_ptr = get_this(execute_data);
-        container_t* c = container_from_zobj(Z_OBJ_P(this_ptr));
-
         zend_ulong h;
         zend_string* key;
         zval* val;
@@ -425,6 +554,14 @@ static PHP_METHOD(TurboSlim_Container, __construct)
 
             set_item(c, &k, val);
         ZEND_HASH_FOREACH_END();
+
+        if (set_defaults) {
+            user_settings = zend_hash_find(values, str_settings);
+        }
+    }
+
+    if (set_defaults) {
+        register_default_services(c, this_ptr, user_settings);
     }
 }
 
@@ -657,6 +794,28 @@ static PHP_METHOD(TurboSlim_Container, extend)
     zend_throw_exception_ex(ce_TurboSlim_Exception_ContainerValueNotFoundException, 0, "\"%Z\" does not exist", id);
 }
 
+static PHP_METHOD(TurboSlim_Container, get)
+{
+    zval* key;
+
+    /* LCOV_EXCL_BR_START */
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_ZVAL_EX(key, 1, 0);
+    ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
+
+    zval* this_ptr = get_this(execute_data);
+    container_t* c = container_from_zobj(Z_OBJ_P(this_ptr));
+    zval* res      = get_item(c, this_ptr, key, BP_VAR_R, return_value);
+    if (UNEXPECTED(EG(exception))) {
+        return;
+    }
+
+    if (res != return_value) {
+        ZVAL_COPY(return_value, res);
+    }
+}
+
 /*
  *  $invoker = function(Container $c) use (Callable $extender, Callable $orig_callable) {
  *      return $extender($orig_callable($c), $c);
@@ -720,6 +879,7 @@ static PHP_FUNCTION(invoker)
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, ZEND_RETURN_VALUE, 0)
     ZEND_ARG_ARRAY_INFO(0, values, 1)
+    ZEND_ARG_TYPE_INFO(0, set_defaults, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_empty, 0, ZEND_RETURN_VALUE, 0)
@@ -759,9 +919,11 @@ static zend_function_entry fe_TurboSlim_Container[] = {
     ZEND_ME(TurboSlim_Container, raw,           arginfo_k,           ZEND_ACC_PUBLIC)
     ZEND_ME(TurboSlim_Container, keys,          arginfo_empty,       ZEND_ACC_PUBLIC)
     ZEND_ME(TurboSlim_Container, extend,        arginfo_extend,      ZEND_ACC_PUBLIC)
+    ZEND_ME(TurboSlim_Container, get,           arginfo_k,           ZEND_ACC_PUBLIC)
 
-    PHP_MALIAS(TurboSlim_Container, has, offsetExists, arginfo_k, ZEND_ACC_PUBLIC)
-    PHP_MALIAS(TurboSlim_Container, get, offsetGet,    arginfo_k, ZEND_ACC_PUBLIC)
+    PHP_MALIAS(TurboSlim_Container, has,     offsetExists, arginfo_k, ZEND_ACC_PUBLIC)
+    PHP_MALIAS(TurboSlim_Container, __get,   get,          arginfo_k, ZEND_ACC_PUBLIC)
+    PHP_MALIAS(TurboSlim_Container, __isset, offsetExists, arginfo_k, ZEND_ACC_PUBLIC)
     ZEND_FE_END
 };
 
