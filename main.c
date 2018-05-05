@@ -21,6 +21,7 @@
 #include "persistent.h"
 #include "psr7.h"
 #include "psr11.h"
+#include "valgrind/valgrind.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(turboslim);
 
@@ -31,7 +32,15 @@ static PHP_GINIT_FUNCTION(turboslim)
 
 static PHP_MINIT_FUNCTION(turboslim)
 {
-    EG(full_tables_cleanup) = 1;
+#ifndef NVALGRIND
+    if (RUNNING_ON_VALGRIND) {
+        zend_string* pcre_jit = zend_string_init(ZEND_STRL("pcre.jit"), 0);
+        zend_string* zero     = zend_string_init(ZEND_STRL("0"), 0);
+        zend_alter_ini_entry(pcre_jit, zero, PHP_INI_USER, PHP_INI_STAGE_STARTUP);
+        zend_string_release(zero);
+        zend_string_release(pcre_jit);
+    }
+#endif
 
     /* Init common data structures */
     init_persistent_data();
