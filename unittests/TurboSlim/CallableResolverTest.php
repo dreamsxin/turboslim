@@ -2,6 +2,7 @@
 namespace TurboSlim\Tests;
 
 use TurboSlim\CallableResolver;
+use TurboSlim\Container;
 use TurboSlim\Tests\Helpers\CallableResolverTestHelper2;
 
 class CallableResolverTest extends \PHPUnit\Framework\TestCase
@@ -13,10 +14,10 @@ class CallableResolverTest extends \PHPUnit\Framework\TestCase
     {
         parent::__construct($name, $data, $dataName);
 
-        $this->container = new \TurboSlim\Container();
+        $this->container = new Container();
         $this->container['test'] = function() { return new CallableResolverTestHelper2(); };
 
-        $this->anotherContainer = new \TurboSlim\Container();
+        $this->anotherContainer = new Container();
     }
 
     public function testResolve_StringCallable()
