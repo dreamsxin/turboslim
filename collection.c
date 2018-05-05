@@ -275,7 +275,7 @@ static int has_dimension(zval* object, zval* member, int check_empty)
 
 static int count_elements(zval* object, zend_long* count)
 {
-    assert(object != NULL);
+    assert(object != NULL); /* LCOV_EXCL_BR_LINE */
 
     zend_object* zobj = Z_OBJ_P(object);
     collection_t* v   = collection_from_zobj(zobj);
@@ -468,7 +468,7 @@ static PHP_METHOD(TurboSlim_Collection, set)
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_ZVAL(key)
-        Z_PARAM_ZVAL(value);
+        Z_PARAM_ZVAL(value)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
@@ -493,7 +493,7 @@ static PHP_METHOD(TurboSlim_Collection, get)
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_ZVAL(key)
         Z_PARAM_OPTIONAL
-        Z_PARAM_ZVAL(def);
+        Z_PARAM_ZVAL(def)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
@@ -703,7 +703,7 @@ static PHP_METHOD(TurboSlim_Collection, offsetSet)
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_ZVAL_EX(key, 1, 0)
-        Z_PARAM_ZVAL(value);
+        Z_PARAM_ZVAL(value)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
