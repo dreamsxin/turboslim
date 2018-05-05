@@ -539,3 +539,15 @@ int init_fast_collection()
     zend_class_implements(ce_TurboSlim_FastCollection, 1, ce_TurboSlim_Interfaces_CollectionInterface);
     return SUCCESS;
 }
+
+void turboslim_create_FastCollection(zval* return_value, zval* data)
+{
+    assert(data != NULL);                /* LCOV_EXCL_BR_LINE */
+    assert(Z_TYPE_P(data) == IS_ARRAY);  /* LCOV_EXCL_BR_LINE */
+
+    object_init_ex(return_value, ce_TurboSlim_FastCollection);
+
+    zend_object* zobj = Z_OBJ_P(return_value);
+    collection_t* c   = collection_from_zobj(zobj);
+    zend_hash_copy(Z_ARRVAL(c->data), Z_ARRVAL_P(data), zval_add_ref);
+}
