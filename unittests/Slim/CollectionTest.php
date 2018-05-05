@@ -1,5 +1,4 @@
 <?php
-
 namespace Slim\Tests;
 
 use TurboSlim\Collection;
