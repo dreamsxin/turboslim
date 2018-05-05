@@ -143,8 +143,9 @@ static const zend_function_entry fe_Psr_Http_Message_MessageInterface[] = {
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, getHeaders,          arginfo_empty)
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, hasHeader,           arginfo_name)
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, getHeader,           arginfo_name)
-    PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, hasHeaderLine,       arginfo_name)
+    PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, getHeaderLine,       arginfo_name)
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, withHeader,          arginfo_nv)
+    PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, withAddedHeader,     arginfo_nv)
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, withoutHeader,       arginfo_name)
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, getBody,             arginfo_empty)
     PHP_ABSTRACT_ME(Psr_Http_Message_MessageInterface, withBody,            arginfo_withBody)
@@ -166,7 +167,7 @@ static const zend_function_entry fe_Psr_Http_Message_MessageInterface[] = {
  */
 static const zend_function_entry fe_Psr_Http_Message_RequestInterface[] = {
     PHP_ABSTRACT_ME(Psr_Http_Message_RequestInterface, getRequestTarget,  arginfo_empty)
-    PHP_ABSTRACT_ME(Psr_Http_Message_RequestInterface, withRequestTraget, arginfo_withRequestTraget)
+    PHP_ABSTRACT_ME(Psr_Http_Message_RequestInterface, withRequestTarget, arginfo_withRequestTraget)
     PHP_ABSTRACT_ME(Psr_Http_Message_RequestInterface, getMethod,         arginfo_empty)
     PHP_ABSTRACT_ME(Psr_Http_Message_RequestInterface, withMethod,        arginfo_withMethod)
     PHP_ABSTRACT_ME(Psr_Http_Message_RequestInterface, getUri,            arginfo_empty)
