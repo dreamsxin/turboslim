@@ -15,7 +15,7 @@
 
 zend_class_entry* ce_TurboSlim_Container = NULL;
 
-static zend_object_handlers container_handlers;
+static zend_object_handlers handlers;
 static zend_function invoker;
 
 typedef struct container {
@@ -66,7 +66,7 @@ static inline container_t* container_from_zobj(const zend_object* obj)
     return (container_t*)((char*)(obj) - XtOffsetOf(container_t, std));
 }
 
-static void container_free_obj(zend_object* obj)
+static void free_obj(zend_object* obj)
 {
     container_t* v = container_from_zobj(obj);
 
@@ -78,7 +78,7 @@ static void container_free_obj(zend_object* obj)
     }
 }
 
-static HashTable* container_get_gc(zval* obj, zval** table, int* n)
+static HashTable* get_gc(zval* obj, zval** table, int* n)
 {
     container_t* v = container_from_zobj(Z_OBJ_P(obj));
     if (v->items.nNumOfElements > 2 * v->gc_num) {
@@ -333,31 +333,31 @@ static void handle_inheritance(zend_class_entry* ce)
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetget"));
         f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("get"));
         if (f1->common.scope == ce_TurboSlim_Container && f2->common.scope == ce_TurboSlim_Container) {
-            container_handlers.read_dimension  = read_dimension;
+            handlers.read_dimension  = read_dimension;
         }
 
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetset"));
         if (f1->common.scope == ce_TurboSlim_Container) {
-            container_handlers.write_dimension = write_dimension;
+            handlers.write_dimension = write_dimension;
         }
 
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetunset"));
         if (f1->common.scope == ce_TurboSlim_Container) {
-            container_handlers.unset_dimension = unset_dimension;
+            handlers.unset_dimension = unset_dimension;
         }
 
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetexists"));
         f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("has"));
         if (f1->common.scope == ce_TurboSlim_Container && f2->common.scope == ce_TurboSlim_Container) {
-            container_handlers.has_dimension   = has_dimension;
+            handlers.has_dimension   = has_dimension;
         }
     }
     else {
         /* ArrayAccess */
-        container_handlers.read_dimension  = read_dimension;
-        container_handlers.write_dimension = write_dimension;
-        container_handlers.unset_dimension = unset_dimension;
-        container_handlers.has_dimension   = has_dimension;
+        handlers.read_dimension  = read_dimension;
+        handlers.write_dimension = write_dimension;
+        handlers.unset_dimension = unset_dimension;
+        handlers.has_dimension   = has_dimension;
     }
 }
 
@@ -367,7 +367,7 @@ static zend_object* container_create_object(zend_class_entry* ce)
 
     zend_object_std_init(&v->std, ce);
     object_properties_init(&v->std, ce);
-    v->std.handlers = &container_handlers;
+    v->std.handlers = &handlers;
     handle_inheritance(ce);
 
     zend_hash_init(&v->items, 0, NULL, definition_dtor, 0);
@@ -375,6 +375,25 @@ static zend_object* container_create_object(zend_class_entry* ce)
     v->gc_num = 0;
 
     return &v->std;
+}
+
+static int compare_objects(zval* object1, zval* object2)
+{
+    zend_object* zobj1 = Z_OBJ_P(object1);
+    zend_object* zobj2 = Z_OBJ_P(object2);
+
+    if (zobj1->ce != zobj2->ce) {  /* LCOV_EXCL_BR_LINE */
+        return 1;                  /* LCOV_EXCL_LINE - this cannot be tested without dirty hacks */
+    }
+
+    container_t* v1 = container_from_zobj(zobj1);
+    container_t* v2 = container_from_zobj(zobj2);
+
+    if (!zend_compare_symbol_tables(&v1->items, &v2->items)) {
+        return zend_get_std_object_handlers()->compare_objects(object1, object2);
+    }
+
+    return 1;
 }
 
 static PHP_METHOD(TurboSlim_Container, __construct)
@@ -755,10 +774,11 @@ int init_container()
 
     ce_TurboSlim_Container->create_object = container_create_object;
 
-    memcpy(&container_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    container_handlers.offset   = XtOffsetOf(container_t, std);
-    container_handlers.free_obj = container_free_obj;
-    container_handlers.get_gc   = container_get_gc;
+    memcpy(&handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+    handlers.offset          = XtOffsetOf(container_t, std);
+    handlers.free_obj        = free_obj;
+    handlers.get_gc          = get_gc;
+    handlers.compare_objects = compare_objects;
 
     zend_class_implements(ce_TurboSlim_Container, 2, zend_ce_arrayaccess, ce_Psr_Container_ContainerInterface);
 
