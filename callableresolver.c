@@ -67,12 +67,11 @@ static int cr_compare_objects(zval* object1, zval* object2)
     callable_resolver_t* v2 = cr_from_zobj(zobj2);
 
     zval res;
-    is_equal_function(&res, &v1->container, &v2->container);
-    if (i_zend_is_true(&res)) {
-        return zend_get_std_object_handlers()->compare_objects(object1, object2);
+    if (FAILURE == is_equal_function(&res, &v1->container, &v2->container) || Z_LVAL(res) != 0) {
+        return 1;
     }
 
-    return 1;
+    return zend_get_std_object_handlers()->compare_objects(object1, object2);
 }
 
 static HashTable* cr_get_properties(zval* object)
