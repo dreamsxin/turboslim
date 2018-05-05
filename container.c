@@ -157,14 +157,12 @@ static definition_t* set_item(container_t* c, zval* key, zval* value)
 
 static zval* get_item(container_t* c, zval* this_ptr, zval* key, int type, zval* rv)
 {
-    zval znull;
     zval* z;
     if (key) {
         z = array_zval_offset_get(&c->items, key);
     }
     else {
         z = NULL;
-        ZVAL_NULL(&znull);
         key = &znull;
     }
 
@@ -487,13 +485,13 @@ static void register_default_services(container_t* c, zval* this_ptr, zval* user
 
     zval fc;
     turboslim_create_FastCollection(&fc, &settings);
+    zval_ptr_dtor(&settings);
 
     zval key;
     ZVAL_NEW_STR(&key, str_settings);
     set_item(c, &key, &fc);
 
     zval_ptr_dtor(&key);
-    zval_ptr_dtor(&settings);
     zval_ptr_dtor(&fc);
 
     zend_string* cn      = zend_string_init(ZEND_STRL("Slim\\DefaultServicesProvider"), 0);
