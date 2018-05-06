@@ -135,6 +135,7 @@ static int compare_objects(zval* z1, zval* z2)
      *
      * If we check fields one by one, everything is OK.
      */
+#if PHP_VERSION_ID < 70300
     if (!v->fcc.initialized && !w->fcc.initialized) {
         return 0;
     }
@@ -142,6 +143,7 @@ static int compare_objects(zval* z1, zval* z2)
     if (v->fcc.initialized != w->fcc.initialized) {
         return 1;
     }
+#endif
 
     if (
            v->fcc.called_scope     != w->fcc.called_scope
