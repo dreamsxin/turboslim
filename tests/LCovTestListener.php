@@ -14,30 +14,33 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
 
     private static function delTree(string $dir)
     {
-        $files = array_diff(scandir($dir), ['.', '..']);
+        $files = \array_diff(\scandir($dir), ['.', '..']);
         foreach ($files as $file) {
             $item = $dir . '/' . $file;
-            is_dir($item) ? self::delTree($item) : unlink($item);
+            \is_dir($item) ? self::delTree($item) : \unlink($item);
         }
 
-        return rmdir($dir);
+        return \rmdir($dir);
     }
 
     public function __construct()
     {
-        $this->enabled = function_exists('flush_coverage');
+        $this->enabled = \function_exists('TurboSlim\\flush_coverage');
+        if ($this->enabled && \function_exists('TurboSlim\\under_valgrind') && TurboSlim\under_valgrind()) {
+            $this->enabled = false;
+        }
 
         if ($this->enabled) {
             $this->dir       = dirname(__DIR__);
             $this->base      = dirname(__DIR__);
             $this->tracedir  = $this->base . '/coverage/';
 
-            if (is_dir($this->base . '/coverage')) {
+            if (\is_dir($this->base . '/coverage')) {
                 self::delTree($this->base . '/coverage');
             }
 
-            mkdir($this->base . '/coverage');
-            passthru(sprintf('lcov --zerocounters --directory %s --quiet', escapeshellarg($this->dir)));
+            \mkdir($this->base . '/coverage');
+            \passthru(\sprintf('lcov --zerocounters --directory %s --quiet', \escapeshellarg($this->dir)));
 
             // Do not run `lcov --initial` as we use different test names
             // lcov --no-external --capture --directory {$this->dir} --base {$this->base} --initial --quiet --output-file %s
@@ -49,47 +52,47 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
         if ($this->enabled) {
             $args = [];
             foreach ($this->tests as $test) {
-                $args[] = '-a ' . escapeshellarg($this->tracedir . $test . '.info');
+                $args[] = '-a ' . \escapeshellarg($this->tracedir . $test . '.info');
             }
 
-            $args[]  = '-o ' . escapeshellarg($this->tracedir . 'COMBINED.info');
+            $args[]  = '-o ' . \escapeshellarg($this->tracedir . 'COMBINED.info');
             $command = 'lcov -q ' . join(' ', $args);
-            passthru($command);
+            \passthru($command);
 
-            $command = sprintf('genhtml -q -s -o %s %s', escapeshellarg($this->tracedir . 'OUTPUT'), escapeshellarg($this->tracedir . 'COMBINED.info'));
-            passthru($command);
+            $command = \sprintf('genhtml -q -s -o %s %s', \escapeshellarg($this->tracedir . 'OUTPUT'), \escapeshellarg($this->tracedir . 'COMBINED.info'));
+            \passthru($command);
         }
     }
 
     public function endTest(PHPUnit\Framework\Test $test, $time)
     {
         if ($this->enabled) {
-            flush_coverage();
+            TurboSlim\flush_coverage();
 
             $name  = $test->getName(false);
-            $class = get_class($test);
+            $class = \get_class($test);
 
-            if (substr($name, -5) === '.phpt') {
-                $name = 'PHPT_' . basename($name, '.phpt');
+            if (\substr($name, -5) === '.phpt') {
+                $name = 'PHPT_' . \basename($name, '.phpt');
             }
             else {
                 $name = $class . '_' . $name;
             }
 
-            $name = str_replace(['\\', '-'], '_', $name);
+            $name = \str_replace(['\\', '-'], '_', $name);
 
             $this->tests[] = $name;
-            $command = sprintf(
+            $command = \sprintf(
                 'lcov --no-external --capture --directory %s --base %s --test-name %s --quiet --output-file %s',
-                escapeshellarg($this->dir),
-                escapeshellarg($this->base),
-                escapeshellarg($name),
-                escapeshellarg($this->tracedir . $name . '.info')
+                \escapeshellarg($this->dir),
+                \escapeshellarg($this->base),
+                \escapeshellarg($name),
+                \escapeshellarg($this->tracedir . $name . '.info')
             );
 
-            passthru($command);
+            \passthru($command);
             // Tests cover different file, make sure to zero all counters in order not to affect subsequent tests
-            passthru(sprintf('lcov --zerocounters --directory %s --quiet', escapeshellarg($this->dir)));
+            \passthru(\sprintf('lcov --zerocounters --directory %s --quiet', \escapeshellarg($this->dir)));
         }
     }
 }

@@ -129,6 +129,15 @@ static PHP_FUNCTION(flush_coverage)
 }
 #endif
 
+static PHP_FUNCTION(under_valgrind)
+{
+#ifndef NVALGRIND
+    RETURN_BOOL(RUNNING_ON_VALGRIND);
+#else
+    RETURN_NULL();
+#endif
+}
+
 static PHP_FUNCTION(mock_slim_interfaces)
 {
     if (!TURBOSLIM_G(slim_interfaces_mocked)) {
@@ -152,8 +161,9 @@ ZEND_END_ARG_INFO()
 
 static const zend_function_entry fe[] = {
 #ifdef COVERAGE
-    ZEND_FE(flush_coverage, NULL)
+    ZEND_NS_FE("TurboSlim", flush_coverage, arginfo_empty)
 #endif
+    ZEND_NS_FE("TurboSlim", under_valgrind, arginfo_empty)
     ZEND_NS_FE("TurboSlim", mock_slim_interfaces, arginfo_empty)
     ZEND_FE_END
 };
