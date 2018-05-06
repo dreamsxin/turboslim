@@ -62,7 +62,6 @@ int compare_objects(zval* object1, zval* object2)
     return i_zend_is_true(&res) ? 0 : 1;
 }
 
-
 static HashTable* get_gc(zval* object, zval** table, int* n)
 {
     wrapper_t* w = (wrapper_t*)Z_OBJ_P(object);
