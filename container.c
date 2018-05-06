@@ -488,7 +488,7 @@ static void register_default_services(container_t* c, zval* this_ptr, zval* user
     zval_ptr_dtor(&settings);
 
     zval key;
-    ZVAL_NEW_STR(&key, str_settings);
+    ZVAL_STR(&key, str_settings);
     Z_TRY_ADDREF(key);
     set_item(c, &key, &fc);
 
@@ -834,7 +834,6 @@ static PHP_FUNCTION(invoker)
         zend_fcall_info* fci;
         zend_fcall_info_cache* fcc;
 
-        /* extender will be NULL, as we don't pass a zval to turboslim_closure_create(); but fcc and fci will be OK */
         /* zval* extender =*/ turboslim_closure_get_callable(this_ptr, &fci, &fcc);
         zval* orig_callable = zend_hash_index_find(bound, 0);
 
@@ -849,9 +848,13 @@ static PHP_FUNCTION(invoker)
                 zend_throw_exception_ex(spl_ce_LogicException, 0, "Unable to call function: %s", error);
                 return;
             }
-            else if (UNEXPECTED(error != NULL)) {
+
+            if (UNEXPECTED(error != NULL)) {
                 zend_error(E_DEPRECATED, "%s", error);
                 efree(error);
+                if (UNEXPECTED(EG(exception))) {
+                    return;
+                }
             }
 
             zend_fcall_info_argn(&fci_oc, 1, container);
