@@ -185,4 +185,13 @@ TURBOSLIM_ATTR_NONNULL static inline void wrong_callback_error(int severity, int
 #endif
 }
 
+TURBOSLIM_ATTR_NONNULL static inline int is_turboslim_func(const zend_function* f)
+{
+    return
+           (f->common.scope->type == ZEND_INTERNAL_CLASS)
+        && (f->common.scope->info.internal.module != NULL)
+        && (f->common.scope->info.internal.module->handle == turboslim_module_entry.handle)
+    ;
+}
+
 #endif /* UTILS_H */
