@@ -231,6 +231,20 @@ static PHP_METHOD(TurboSlim_Http_Stream, __toString)
         RETURN_EMPTY_STRING();
     }
 
+    zend_class_entry* ce = Z_OBJCE_P(this_ptr);
+    if (EXPECTED(ce->type == ZEND_INTERNAL_CLASS && ce->info.internal.module->handle == turboslim_module_entry.handle)) {
+        if (!x->seekable || !x->readable || -1 == php_stream_rewind(x->stream)) {
+            RETURN_EMPTY_STRING();
+        }
+
+        zend_string* contents = php_stream_copy_to_mem(x->stream, PHP_STREAM_COPY_ALL, 0);
+        if (contents) {
+            RETURN_STR(contents);
+        }
+
+        RETURN_EMPTY_STRING();
+    }
+
     zend_call_method(this_ptr, Z_OBJCE_P(this_ptr), NULL, ZEND_STRL("rewind"), NULL, 0, NULL, NULL);
     if (UNEXPECTED(EG(exception))) {
         zend_clear_exception();
