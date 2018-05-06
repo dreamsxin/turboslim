@@ -274,10 +274,18 @@ static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* ca
         zval subpats;
         zval rv;
 
+#if PHP_VERSION_ID < 70300
         ++pce->refcount;
+#else
+        php_pcre_pce_incref(pce);
+#endif
         ZVAL_NULL(&subpats);
         php_pcre_match_impl(pce, Z_STRVAL_P(callable), (int)Z_STRLEN_P(callable), &rv, &subpats, 0, 0, 0, 0);
-        --pce->refcount;
+#if PHP_VERSION_ID < 70300
+        ++pce->refcount;
+#else
+        php_pcre_pce_decref(pce);
+#endif
 
         if (zend_is_true(&rv) && Z_TYPE(subpats) == IS_ARRAY) {
             resolve_callable(return_value, c, zend_hash_index_find(Z_ARRVAL(subpats), 1), zend_hash_index_find(Z_ARRVAL(subpats), 2));
