@@ -35,14 +35,15 @@ static void free_obj(zend_object* object)
 
 static zend_object* clone_obj(zval* obj)
 {
-    wrapper_t* mine = (wrapper_t*)Z_OBJ_P(obj);
-    zval rv;
+    zend_object* old_object = Z_OBJ_P(obj);
+    zend_object* new_object = create_object(old_object->ce);
 
-    object_init_ex(&rv, Z_OBJCE_P(obj));
-    wrapper_t* theirs = (wrapper_t*)Z_OBJ(rv);
+    wrapper_t* mine   = (wrapper_t*)old_object;
+    wrapper_t* theirs = (wrapper_t*)new_object;
+
     ZVAL_COPY(&theirs->orig, &mine->orig);
 
-    return Z_OBJ(rv);
+    return new_object;
 }
 
 int compare_objects(zval* object1, zval* object2)
@@ -57,9 +58,12 @@ int compare_objects(zval* object1, zval* object2)
     wrapper_t* v1 = (wrapper_t*)zobj1;
     wrapper_t* v2 = (wrapper_t*)zobj2;
 
-    zval res;
-    is_equal_function(&res, &v1->orig, &v2->orig);
-    return i_zend_is_true(&res) ? 0 : 1;
+    zval r;
+    if (UNEXPECTED(FAILURE == compare_function(&r, &v1->orig, &v2->orig)) || Z_LVAL(r) != 0) {
+        return 1;
+    }
+
+    return 0;
 }
 
 static HashTable* get_gc(zval* object, zval** table, int* n)

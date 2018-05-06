@@ -180,8 +180,10 @@ TURBOSLIM_ATTR_NONNULL static inline void wrong_callback_error(int severity, int
 {
 #if PHP_VERSION_ID < 70200
     zend_wrong_callback_error(severity, num, error);
-#else
+#elif PHP_VERSION_ID < 70300
     zend_wrong_callback_error(0, severity, num, error);
+#else
+    zend_wrong_callback_error(num, error);
 #endif
 }
 

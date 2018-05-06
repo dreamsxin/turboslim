@@ -19,7 +19,7 @@ typedef struct callable_resolver {
     zend_object std;
 } callable_resolver_t;
 
-static zend_object_handlers cr_handlers;
+static zend_object_handlers handlers;
 
 static inline callable_resolver_t* cr_from_zobj(const zend_object* obj)
 {
@@ -32,13 +32,13 @@ static zend_object* cr_create_object(zend_class_entry* ce)
 
     zend_object_std_init(&v->std, ce);
     object_properties_init(&v->std, ce);
-    v->std.handlers = &cr_handlers;
+    v->std.handlers = &handlers;
 
     ZVAL_NULL(&v->container);
     return &v->std;
 }
 
-static void cr_free_obj(zend_object* obj)
+static void free_obj(zend_object* obj)
 {
     callable_resolver_t* v = cr_from_zobj(obj);
 
@@ -46,7 +46,7 @@ static void cr_free_obj(zend_object* obj)
     zval_ptr_dtor(&v->container);
 }
 
-static int cr_compare_objects(zval* object1, zval* object2)
+static int compare_objects(zval* object1, zval* object2)
 {
     zend_object* zobj1 = Z_OBJ_P(object1);
     zend_object* zobj2 = Z_OBJ_P(object2);
@@ -67,14 +67,14 @@ static int cr_compare_objects(zval* object1, zval* object2)
     callable_resolver_t* v2 = cr_from_zobj(zobj2);
 
     zval res;
-    if (FAILURE == is_equal_function(&res, &v1->container, &v2->container) || Z_LVAL(res) != 0) {
+    if (FAILURE == compare_function(&res, &v1->container, &v2->container) || Z_LVAL(res) != 0) {
         return 1;
     }
 
     return zend_get_std_object_handlers()->compare_objects(object1, object2);
 }
 
-static HashTable* cr_get_properties(zval* object)
+static HashTable* get_properties(zval* object)
 {
     callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(object));
 
@@ -84,7 +84,7 @@ static HashTable* cr_get_properties(zval* object)
     return res;
 }
 
-static HashTable* cr_get_gc(zval* object, zval** table, int* n)
+static HashTable* get_gc(zval* object, zval** table, int* n)
 {
     callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(object));
     *table = &v->container;
@@ -358,12 +358,12 @@ int init_callable_resolver()
 
     ce_TurboSlim_CallableResolver->create_object = cr_create_object;
 
-    memcpy(&cr_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    cr_handlers.offset          = XtOffsetOf(callable_resolver_t, std);
-    cr_handlers.free_obj        = cr_free_obj;
-    cr_handlers.compare_objects = cr_compare_objects;
-    cr_handlers.get_properties  = cr_get_properties;
-    cr_handlers.get_gc          = cr_get_gc;
+    memcpy(&handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+    handlers.offset          = XtOffsetOf(callable_resolver_t, std);
+    handlers.free_obj        = free_obj;
+    handlers.compare_objects = compare_objects;
+    handlers.get_properties  = get_properties;
+    handlers.get_gc          = get_gc;
 
     return SUCCESS;
 }
