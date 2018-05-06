@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="phpunit.xsd"
-    bootstrap="unittests/bootstrap.php"
+    bootstrap="tests/bootstrap.php"
     colors="true"
     convertErrorsToExceptions="true"
     convertNoticesToExceptions="true"
@@ -14,23 +14,23 @@
 >
 	<testsuites>
 		<testsuite name="TurboSlim Unit Tests">
-			<directory suffix="Test.php">unittests/TurboSlim</directory>
+			<directory suffix="Test.php">tests/TurboSlim</directory>
 		</testsuite>
 
 		<testsuite name="Slim Test Suite">
-			<directory suffix="Test.php">unittests/Slim</directory>
+			<directory suffix="Test.php">tests/Slim</directory>
 		</testsuite>
 
 		<testsuite name="Slim Bugs">
-			<directory suffix="Test.php">unittests/SlimBugs</directory>
+			<directory suffix="Test.php">tests/SlimBugs</directory>
 		</testsuite>
 
 		<testsuite name="PHPT Test Suite">
-			<directory suffix=".phpt">tests</directory>
+			<directory suffix=".phpt">tests/phpt</directory>
 		</testsuite>
 	</testsuites>
 
 	<listeners>
-		<listener class="LCovTestListener" file="./unittests/LCovTestListener.php"/>
+		<listener class="LCovTestListener" file="./tests/LCovTestListener.php"/>
 	</listeners>
 </phpunit>
