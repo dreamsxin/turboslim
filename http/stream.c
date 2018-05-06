@@ -52,6 +52,34 @@ static void free_obj(zend_object* obj)
     zval_ptr_dtor(&v->meta);
 }
 
+static zend_object* clone_obj(zval* obj)
+{
+    zend_object* old_object = Z_OBJ_P(obj);
+    zend_object* new_object = create_object(old_object->ce);
+
+    stream_t* mine   = stream_from_zobj(old_object);
+    stream_t* theirs = stream_from_zobj(new_object);
+
+    ZVAL_COPY(&theirs->res,  &mine->res);
+    ZVAL_COPY(&theirs->meta, &mine->meta);
+    theirs->stream   = mine->stream;
+    theirs->readable = mine->readable;
+    theirs->writable = mine->writable;
+    theirs->seekable = mine->seekable;
+    theirs->is_pipe  = mine->is_pipe;
+
+    zend_objects_clone_members(new_object, old_object);
+    return new_object;
+}
+
+static HashTable* get_gc(zval* object, zval** table, int* n)
+{
+    stream_t* v = (stream_t*)Z_OBJ_P(object);
+
+    *table = &v->res;
+    *n     = 2;
+    return zend_std_get_properties(object);
+}
 
 static void detach(stream_t* x)
 {
@@ -559,8 +587,10 @@ int init_http_stream()
     ce_TurboSlim_Http_Stream->unserialize   = zend_class_unserialize_deny;
 
     memcpy(&handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    handlers.offset   = XtOffsetOf(stream_t, std);
-    handlers.free_obj = free_obj;
+    handlers.offset    = XtOffsetOf(stream_t, std);
+    handlers.free_obj  = free_obj;
+    handlers.clone_obj = clone_obj;
+    handlers.get_gc    = get_gc;
 
     return SUCCESS;
 }
