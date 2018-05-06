@@ -489,6 +489,7 @@ static void register_default_services(container_t* c, zval* this_ptr, zval* user
 
     zval key;
     ZVAL_NEW_STR(&key, str_settings);
+    Z_TRY_ADDREF(key);
     set_item(c, &key, &fc);
 
     zval_ptr_dtor(&key);
