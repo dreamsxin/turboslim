@@ -22,6 +22,7 @@
 #include "persistent.h"
 #include "psr7.h"
 #include "psr11.h"
+#include "utils.h"
 #include "valgrind/valgrind.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(turboslim);
@@ -131,16 +132,16 @@ static PHP_FUNCTION(flush_coverage)
 static PHP_FUNCTION(mock_slim_interfaces)
 {
     if (!TURBOSLIM_G(slim_interfaces_mocked)) {
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\CallableResolverInterface"),   ce_TurboSlim_Interfaces_CallableResolverInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\CollectionInterface"),         ce_TurboSlim_Interfaces_CollectionInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\InvocationStrategyInterface"), ce_TurboSlim_Interfaces_InvocationStrategyInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\RouteGroupInterface"),         ce_TurboSlim_Interfaces_RouteGroupInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\RouteInterface"),              ce_TurboSlim_Interfaces_RouteInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\RouterInterface"),             ce_TurboSlim_Interfaces_RouterInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\CallableResolverInterface"),   ce_TurboSlim_Interfaces_CallableResolverInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\CollectionInterface"),         ce_TurboSlim_Interfaces_CollectionInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\InvocationStrategyInterface"), ce_TurboSlim_Interfaces_InvocationStrategyInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\RouteGroupInterface"),         ce_TurboSlim_Interfaces_RouteGroupInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\RouteInterface"),              ce_TurboSlim_Interfaces_RouteInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\RouterInterface"),             ce_TurboSlim_Interfaces_RouterInterface);
 
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\Http\\CookiesInterface"),      ce_TurboSlim_Interfaces_Http_CookiesInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\Http\\EnvironmentInterface"),  ce_TurboSlim_Interfaces_Http_EnvironmentInterface);
-        zend_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\Http\\HeadersInterface"),      ce_TurboSlim_Interfaces_Http_HeadersInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\Http\\CookiesInterface"),      ce_TurboSlim_Interfaces_Http_CookiesInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\Http\\EnvironmentInterface"),  ce_TurboSlim_Interfaces_Http_EnvironmentInterface);
+        turboslim_register_class_alias_ex(ZEND_STRL("Slim\\Interfaces\\Http\\HeadersInterface"),      ce_TurboSlim_Interfaces_Http_HeadersInterface);
 
         TURBOSLIM_G(slim_interfaces_mocked) = 1;
     }
