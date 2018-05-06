@@ -297,7 +297,8 @@ static PHP_METHOD(TurboSlim_FastCollection, all)
     zend_object* zobj = Z_OBJ_P(this_ptr);
     collection_t* c   = collection_from_zobj(zobj);
 
-    RETURN_ZVAL(&c->data, 1, 0);
+    array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL(c->data)));
+    zend_hash_copy(Z_ARRVAL_P(return_value), Z_ARRVAL(c->data), zval_add_ref);
 }
 
 /*
