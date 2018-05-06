@@ -213,4 +213,13 @@ static inline zend_class_entry* zend_get_executed_scope(void)
 }
 #endif
 
+TURBOSLIM_ATTR_NONNULL static inline int turboslim_register_class_alias_ex(const char* name, size_t name_len, zend_class_entry* ce)
+{
+#if PHP_VERSION_ID < 70300
+    return zend_register_class_alias_ex(name, name_len, ce);
+#else
+    return zend_register_class_alias_ex(name, name_len, ce, 1);
+#endif
+}
+
 #endif /* UTILS_H */
