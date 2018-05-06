@@ -194,4 +194,23 @@ TURBOSLIM_ATTR_NONNULL static inline int is_turboslim_func(const zend_function* 
     ;
 }
 
+#if PHP_VERSION_ID < 70100
+static inline zend_class_entry* zend_get_executed_scope(void)
+{
+    zend_execute_data* ex = EG(current_execute_data);
+
+    while (1) {
+        if (!ex) {
+            return NULL;
+        }
+
+        if (ex->func && (ZEND_USER_CODE(ex->func->type) || ex->func->common.scope)) {
+            return ex->func->common.scope;
+        }
+
+        ex = ex->prev_execute_data;
+    }
+}
+#endif
+
 #endif /* UTILS_H */
