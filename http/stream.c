@@ -29,6 +29,11 @@ static inline stream_t* stream_from_zobj(const zend_object* obj)
     return (stream_t*)((char*)(obj) - XtOffsetOf(stream_t, std));
 }
 
+static inline zend_bool is_attached(stream_t* x)
+{
+    return x->stream != NULL;
+}
+
 static zend_object* create_object(zend_class_entry* ce)
 {
     stream_t* v = ecalloc(1, sizeof(stream_t) + zend_object_properties_size(ce));
@@ -74,11 +79,43 @@ static zend_object* clone_obj(zval* obj)
 
 static HashTable* get_gc(zval* object, zval** table, int* n)
 {
-    stream_t* v = (stream_t*)Z_OBJ_P(object);
+    stream_t* v = stream_from_zobj(Z_OBJ_P(object));
 
     *table = &v->res;
     *n     = 2;
     return zend_std_get_properties(object);
+}
+
+static int cast_object(zval* readobj, zval* writeobj, int type)
+{
+    zend_class_entry* ce = Z_OBJCE_P(readobj);
+    if (EXPECTED(ce->type == ZEND_INTERNAL_CLASS && ce->info.internal.module->handle == turboslim_module_entry.handle)) {
+        zval retval;
+        if (type == IS_STRING) {
+            stream_t* x = stream_from_zobj(Z_OBJ_P(readobj));
+            if (!is_attached(x) || !x->seekable || !x->readable || -1 == php_stream_rewind(x->stream)) {
+                ZVAL_EMPTY_STRING(&retval);
+            }
+            else {
+                zend_string* contents = php_stream_copy_to_mem(x->stream, PHP_STREAM_COPY_ALL, 0);
+                if (contents) {
+                    ZVAL_STR(&retval, contents);
+                }
+                else {
+                    ZVAL_EMPTY_STRING(&retval);
+                }
+            }
+
+            if (readobj == writeobj) {
+                zval_ptr_dtor(readobj);
+            }
+
+            ZVAL_COPY_VALUE(writeobj, &retval);
+            return SUCCESS;
+        }
+    }
+
+    return zend_std_cast_object_tostring(readobj, writeobj, type);
 }
 
 static void detach(stream_t* x)
@@ -94,11 +131,6 @@ static void detach(stream_t* x)
     x->writable = 0;
     x->seekable = 0;
     x->is_pipe  = -1;
-}
-
-static inline zend_bool is_attached(stream_t* x)
-{
-    return x->stream != NULL;
 }
 
 static PHP_METHOD(TurboSlim_Http_Stream, attach)
@@ -601,10 +633,11 @@ int init_http_stream()
     ce_TurboSlim_Http_Stream->unserialize   = zend_class_unserialize_deny;
 
     memcpy(&handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    handlers.offset    = XtOffsetOf(stream_t, std);
-    handlers.free_obj  = free_obj;
-    handlers.clone_obj = clone_obj;
-    handlers.get_gc    = get_gc;
+    handlers.offset      = XtOffsetOf(stream_t, std);
+    handlers.free_obj    = free_obj;
+    handlers.clone_obj   = clone_obj;
+    handlers.get_gc      = get_gc;
+    handlers.cast_object = cast_object;
 
     return SUCCESS;
 }
