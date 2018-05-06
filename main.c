@@ -11,6 +11,7 @@
 #include "internal/closure.h"
 #include "internal/container.h"
 #include "internal/internalclass.h"
+#include "http/stream.h"
 #include "callableresolver.h"
 #include "callablewrapper.h"
 #include "collection.h"
@@ -62,6 +63,7 @@ static PHP_MINIT_FUNCTION(turboslim)
     init_container();
     init_deferred_callable();
     init_fast_collection();
+    init_http_stream();
 
     return SUCCESS;
 }

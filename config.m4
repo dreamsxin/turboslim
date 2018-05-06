@@ -16,6 +16,7 @@ exception/turboslimexception.c
 exception/invalidmethodexception.c
 exception/notfoundexception.c
 exception/methodnotallowedexception.c
+http/stream.c
 internal/closure.c
 internal/container.c
 internal/internalclass.c
