@@ -1,4 +1,4 @@
-#include "stream.h"
+#include "http/stream.h"
 
 #include <sys/stat.h>
 #include <Zend/zend_exceptions.h>
