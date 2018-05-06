@@ -21,6 +21,10 @@
 			<directory suffix="Test.php">unittests/Slim</directory>
 		</testsuite>
 
+		<testsuite name="Slim Bugs">
+			<directory suffix="Test.php">unittests/SlimBugs</directory>
+		</testsuite>
+
 		<testsuite name="PHPT Test Suite">
 			<directory suffix=".phpt">tests</directory>
 		</testsuite>
