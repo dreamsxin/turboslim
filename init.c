@@ -381,6 +381,7 @@ static void init_deferred_callable()
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\DeferredCallable", fe_TurboSlim_DeferredCallable);
     ce_TurboSlim_DeferredCallable = zend_register_internal_class(&ce);
+    zend_declare_property_ex(ce_TurboSlim_DeferredCallable, str_container, &znull, ZEND_ACC_PRIVATE, NULL);
 
     ce_TurboSlim_DeferredCallable->create_object = turboslim_deferredcallable_create_object;
     ce_TurboSlim_DeferredCallable->serialize     = zend_class_serialize_deny;

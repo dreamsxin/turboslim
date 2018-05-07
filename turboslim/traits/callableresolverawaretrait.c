@@ -13,7 +13,7 @@ zend_class_entry* ce_TurboSlim_CallableResolverAwareTrait = NULL;
 
 int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zval* this_ptr, zval* callable)
 {
-    zend_class_entry* scope = Z_OBJCE_P(this_ptr);
+    zend_class_entry* scope = get_executed_scope();
     zval resolver;
     zval tmp;
 

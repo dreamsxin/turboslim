@@ -60,19 +60,25 @@ zend_object* turboslim_deferredcallable_clone_obj(zval* obj)
  */
 zval* turboslim_deferredcallable_read_property(zval* object, zval* member, int type, void** cache_slot, zval* rv)
 {
-    if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "container")) {
+    if (Z_TYPE_P(member) == IS_STRING) {
         zend_object* zobj = Z_OBJ_P(object);
+        zend_class_entry* scope = get_executed_scope();
 
-        if (ce_TurboSlim_DeferredCallable == zobj->ce) {
-            deferred_callable_t* v = dc_from_zobj(zobj);
-            return &v->container;
+        if (zend_string_equals_literal(Z_STR_P(member), "container")) {
+            if (ce_TurboSlim_DeferredCallable == scope) {
+                deferred_callable_t* v = dc_from_zobj(zobj);
+                return &v->container;
+            }
+
+            zend_property_info* p = zend_get_property_info(zobj->ce, Z_STR_P(member), 1);
+            if (p == ZEND_WRONG_PROPERTY_INFO || !p) {
+                if (type != BP_VAR_IS) {
+                    zend_throw_error(NULL, "Cannot access private property %s::$%s", ZSTR_VAL(ce_TurboSlim_DeferredCallable->name), Z_STRVAL_P(member));
+                }
+
+                return &EG(uninitialized_zval);
+            }
         }
-
-        if (type != BP_VAR_IS) {
-            zend_throw_error(NULL, "Cannot access private property %s::$%s", ZSTR_VAL(ce_TurboSlim_DeferredCallable->name), Z_STRVAL_P(member));
-        }
-
-        return &EG(uninitialized_zval);
     }
 
     return zend_get_std_object_handlers()->read_property(object, member, type, cache_slot, rv);
@@ -214,7 +220,7 @@ ZEND_END_ARG_INFO()
 
 const zend_function_entry fe_TurboSlim_DeferredCallable[] = {
     PHP_ME(TurboSlim_DeferredCallable, __construct, arginfo___construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-    ZEND_NAMED_ME(resolveCallable, ZEND_MN(TurboSlim_CallableResolverAwareTrait_resolveCallable), arginfo_resolveCallable, ZEND_ACC_PUBLIC)
+    ZEND_NAMED_ME(resolveCallable, ZEND_MN(TurboSlim_CallableResolverAwareTrait_resolveCallable), arginfo_resolveCallable, ZEND_ACC_PROTECTED)
     PHP_ME(TurboSlim_DeferredCallable, __invoke, arginfo___invoke, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
