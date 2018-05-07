@@ -100,8 +100,8 @@ int turboslim_deferredcallable_compare_objects(zval* object1, zval* object2)
     zend_object* zobj1 = Z_OBJ_P(object1);
     zend_object* zobj2 = Z_OBJ_P(object2);
 
-    if (zobj1->ce != zobj2->ce) {  /* LCOV_EXCL_BR_LINE */
-        return 1;                  /* LCOV_EXCL_LINE - this cannot be tested without dirty hacks */
+    if (zobj1->ce != zobj2->ce) {
+        return 1;
     }
 
     deferred_callable_t* v1 = dc_from_zobj(zobj1);

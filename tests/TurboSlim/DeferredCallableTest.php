@@ -3,6 +3,7 @@ namespace TurboSlim\Tests;
 
 use TurboSlim\DeferredCallable;
 use TurboSlim\Tests\Helpers\CloneCompareTestTrait;
+use TurboSlim\Tests\Helpers\MyDeferredCallable;
 
 class DeferredCallableTest extends \PHPUnit\Framework\TestCase
 {
@@ -125,5 +126,9 @@ class DeferredCallableTest extends \PHPUnit\Framework\TestCase
 
         $b->prop = 'val';
         $this->assertTrue($b != $c);
+
+        $d = new MyDeferredCallable('date');
+        $this->assertTrue($b != $d);
+        $this->assertTrue($c != $d);
     }
 }
