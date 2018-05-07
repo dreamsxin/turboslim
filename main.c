@@ -69,6 +69,7 @@ static const zend_module_dep turboslim_deps[] = {
     ZEND_MOD_REQUIRED("json")
     ZEND_MOD_REQUIRED("spl")
     ZEND_MOD_REQUIRED("pcre")
+    ZEND_MOD_REQUIRED("Reflection")
     ZEND_MOD_END
 };
 

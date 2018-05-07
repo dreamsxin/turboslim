@@ -92,17 +92,6 @@ zend_object* turboslim_collection_clone_obj(zval* obj)
     return new_object;
 }
 
-static zend_bool is_public_property(zval* object, zval* member)
-{
-    zend_class_entry* ce = Z_OBJCE_P(object);
-    if (ce != ce_TurboSlim_Collection) {
-        zend_property_info* p = zend_get_property_info(Z_OBJCE_P(object), Z_STR_P(member), 1);
-        return p && (p->flags & ZEND_ACC_PUBLIC);
-    }
-
-    return 0;
-}
-
 zval* turboslim_collection_read_property(zval* object, zval* member, int type, void** cache_slot, zval *rv)
 {
     if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "data")) {

@@ -18,18 +18,20 @@
  *   * getSize() does not cache its result: the same stream can be shared, and therefore the size of the stream can change without prior notice;
  *   * attach() validates that the resource passed to it is actually a stream
  *     (see `SlimBugs\Tests\StreamTest::testSlimWrongResource()`);
- *   * all protected properties are read-only;
- *   * all protected properties are emulated (they are not real), therefore the following will not work:
- *     ```
- *      class MyStream extends \TurboSlim\Http\Stream
- *      {
- *          public $size;
- *      }
- *
- *      $x = new MyStream(fopen('php://memory', 'rw'));
- *      $x->size = 10;
- *      var_dump($x->size); // Fatal error: Uncaught Error: Cannot access protected property TurboSlim\Http\Stream::$size
- *     ```
+ *   * `stream` property is semi-writable (you can only write `null` to it, which is equivalent to calling `detahc()`);
+ *      all other properties are read-only;
+ *   * since the properties are not real, PHPUnit's `assertAttributeEquals()` will not work (you need to use `ReflectionProperty` instead);
+ *      ```
+ *      // Cannot emulate this type of access
+ *      $this->assertAttributeEquals(null, 'stream', $body);
+ *      // This should be used instead:
+ *      $bodyStream = new ReflectionProperty($body, 'stream');
+ *      $bodyStream->setAccessible(true);
+ *      $value = $bodyStream->getValue($body);
+ *      $this->assertNull($value);
+ *      ```
+ *   * TurboSlim does not populate stream metadata unless absolutely necessary (that is, until `getMetadata()` is called explicitly):
+ *     it can get readabe/writable/seekable status more efficiently directly from the stream, avoiding a call to `stream_get_meta_data`.
  */
 
 #include "php_turboslim.h"
@@ -60,6 +62,7 @@ TURBOSLIM_VISIBILITY_HIDDEN zend_object* turboslim_http_stream_create_object(zen
 TURBOSLIM_VISIBILITY_HIDDEN void turboslim_http_stream_free_obj(zend_object* obj);
 TURBOSLIM_VISIBILITY_HIDDEN zend_object* turboslim_http_stream_clone_obj(zval* obj);
 TURBOSLIM_VISIBILITY_HIDDEN zval* turboslim_http_stream_read_property(zval* object, zval* member, int type, void** cache_slot, zval* rv);
+TURBOSLIM_VISIBILITY_HIDDEN void turboslim_http_stream_write_property(zval* object, zval* member, zval* value, void** cache_slot);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_http_stream_has_property(zval* object, zval* member, int has_set_exists, void** cache_slot);
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_http_stream_get_properties(zval* object);
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_http_stream_get_debug_info(zval* object, int* is_temp);

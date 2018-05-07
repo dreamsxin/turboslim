@@ -248,4 +248,15 @@ TURBOSLIM_ATTR_NONNULL static inline int turboslim_register_class_alias_ex(const
 #endif
 }
 
+TURBOSLIM_ATTR_NONNULL static inline zend_bool is_public_property(zval* object, zval* member)
+{
+    zend_class_entry* ce = Z_OBJCE_P(object);
+    if (!is_turboslim_class(ce)) {
+        zend_property_info* p = zend_get_property_info(ce, Z_STR_P(member), 1);
+        return p && (p->flags & ZEND_ACC_PUBLIC);
+    }
+
+    return 0;
+}
+
 #endif /* UTILS_H */

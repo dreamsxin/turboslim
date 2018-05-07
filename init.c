@@ -415,6 +415,7 @@ static void init_http_stream()
     turboslim_http_stream_handlers.clone_obj       = turboslim_http_stream_clone_obj;
     turboslim_http_stream_handlers.read_property   = turboslim_http_stream_read_property;
     turboslim_http_stream_handlers.has_property    = turboslim_http_stream_has_property;
+    turboslim_http_stream_handlers.write_property  = turboslim_http_stream_write_property;
     turboslim_http_stream_handlers.get_properties  = turboslim_http_stream_get_properties;
     turboslim_http_stream_handlers.get_gc          = turboslim_http_stream_get_gc;
     turboslim_http_stream_handlers.cast_object     = turboslim_http_stream_cast_object;

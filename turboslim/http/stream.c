@@ -8,6 +8,8 @@
 #include "turboslim/psr7.h"
 #include "utils.h"
 
+extern zend_class_entry* reflection_property_ptr;
+
 zend_class_entry* ce_TurboSlim_Http_Stream = NULL;
 zend_object_handlers turboslim_http_stream_handlers;
 
@@ -21,6 +23,21 @@ static inline stream_t* stream_from_zobj(const zend_object* obj)
 static inline zend_bool is_attached(stream_t* x)
 {
     return x->stream != NULL;
+}
+
+static void detach(stream_t* x)
+{
+    zval_ptr_dtor(&x->res);
+    ZVAL_NULL(&x->res);
+    x->stream = NULL;
+
+    zval_ptr_dtor(&x->meta);
+    ZVAL_NULL(&x->meta);
+
+    x->readable = 0;
+    x->writable = 0;
+    x->seekable = 0;
+    x->is_pipe  = -1;
 }
 
 static zend_bool is_pipe(stream_t* x)
@@ -125,25 +142,61 @@ zend_object* turboslim_http_stream_clone_obj(zval* obj)
     return new_object;
 }
 
-static int is_my_property(zend_ulong hash, const zend_string* m, int type)
+static zval* is_my_property(stream_t* x, zend_string* m, zval* rv)
 {
-    if (
-           (hash == zend_inline_hash_func(ZEND_STRL("stream"))   && zend_string_equals_literal(m, "stream"))
-        || (hash == zend_inline_hash_func(ZEND_STRL("meta"))     && zend_string_equals_literal(m, "meta"))
-        || (hash == zend_inline_hash_func(ZEND_STRL("readable")) && zend_string_equals_literal(m, "readable"))
-        || (hash == zend_inline_hash_func(ZEND_STRL("writable")) && zend_string_equals_literal(m, "writable"))
-        || (hash == zend_inline_hash_func(ZEND_STRL("seekable")) && zend_string_equals_literal(m, "seekable"))
-        || (hash == zend_inline_hash_func(ZEND_STRL("size"))     && zend_string_equals_literal(m, "size"))
-        || (hash == zend_inline_hash_func(ZEND_STRL("isPipe"))   && zend_string_equals_literal(m, "isPipe"))
-    ) {
-        if (type != BP_VAR_IS) {
-            zend_throw_error(NULL, "Cannot access protected property %s::$%s", ZSTR_VAL(ce_TurboSlim_Http_Stream->name), ZSTR_VAL(m));
-        }
+    zend_ulong hash = ZSTR_HASH(m);
+    ZVAL_NULL(rv);
 
-        return 1;
+    if (hash == zend_inline_hash_func(ZEND_STRL("stream")) && zend_string_equals_literal(m, "stream")) {
+        return &x->res;
     }
 
-    return 0;
+    if (hash == zend_inline_hash_func(ZEND_STRL("meta")) && zend_string_equals_literal(m, "meta")) {
+        return &x->meta;
+    }
+
+    if (hash == zend_inline_hash_func(ZEND_STRL("readable")) && zend_string_equals_literal(m, "readable")) {
+        if (is_attached(x)) {
+            ZVAL_BOOL(rv, x->readable);
+        }
+
+        return rv;
+    }
+
+    if (hash == zend_inline_hash_func(ZEND_STRL("writable")) && zend_string_equals_literal(m, "writable")) {
+        if (is_attached(x)) {
+            ZVAL_BOOL(rv, x->writable);
+        }
+
+        return rv;
+    }
+
+    if (hash == zend_inline_hash_func(ZEND_STRL("seekable")) && zend_string_equals_literal(m, "seekable")) {
+        if (is_attached(x)) {
+            ZVAL_BOOL(rv, x->seekable);
+        }
+
+        return rv;
+    }
+
+    if (hash == zend_inline_hash_func(ZEND_STRL("size")) && zend_string_equals_literal(m, "size")) {
+        zend_long size = get_size(x);
+        if (size >= 0) {
+            ZVAL_LONG(rv, size);
+        }
+
+        return rv;
+    }
+
+    if (hash == zend_inline_hash_func(ZEND_STRL("isPipe")) && zend_string_equals_literal(m, "isPipe")) {
+        if (is_attached(x)) {
+            ZVAL_BOOL(rv, is_pipe(x));
+        }
+
+        return rv;
+    }
+
+    return NULL;
 }
 
 zval* turboslim_http_stream_read_property(zval* object, zval* member, int type, void** cache_slot, zval* rv)
@@ -151,52 +204,21 @@ zval* turboslim_http_stream_read_property(zval* object, zval* member, int type, 
     if (Z_TYPE_P(member) == IS_STRING) {
         zend_object* zobj = Z_OBJ_P(object);
         zend_string* m    = Z_STR_P(member);
-        zend_ulong hash   = ZSTR_HASH(m);
+        stream_t* x       = stream_from_zobj(zobj);
 
-        if (zend_check_protected(ce_TurboSlim_Http_Stream, zend_get_executed_scope())) {
-            stream_t* x = stream_from_zobj(zobj);
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("stream")) && zend_string_equals_literal(m, "stream")) {
-                return &x->res;
-            }
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("meta")) && zend_string_equals_literal(m, "meta")) {
-                return &x->meta;
-            }
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("readable")) && zend_string_equals_literal(m, "readable")) {
-                ZVAL_BOOL(rv, x->readable);
-                return rv;
-            }
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("writable")) && zend_string_equals_literal(m, "writable")) {
-                ZVAL_BOOL(rv, x->writable);
-                return rv;
-            }
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("seekable")) && zend_string_equals_literal(m, "seekable")) {
-                ZVAL_BOOL(rv, x->seekable);
-                return rv;
-            }
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("size")) && zend_string_equals_literal(m, "size")) {
-                zend_long size = get_size(x);
-                if (size >= 0) {
-                    ZVAL_LONG(rv, size);
-                }
-                else {
-                    ZVAL_NULL(rv);
-                }
-
-                return rv;
-            }
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("isPipe")) && zend_string_equals_literal(m, "isPipe")) {
-                ZVAL_BOOL(rv, is_pipe(x));
-                return rv;
+        zend_class_entry* called_scope = get_executed_scope();
+        zend_bool is_public            = is_public_property(object, member);
+        if (is_public || zend_check_protected(ce_TurboSlim_Http_Stream, called_scope)) {
+            zval* z = is_my_property(x, m, rv);
+            if (z) {
+                return z;
             }
         }
-        else if (is_my_property(hash, m, type)) {
+        else if (is_my_property(x, m, rv)) {
+            if (type != BP_VAR_IS) {
+                zend_throw_error(NULL, "Cannot access protected property %s::$%s", ZSTR_VAL(ce_TurboSlim_Http_Stream->name), ZSTR_VAL(m));
+            }
+
             return &EG(uninitialized_zval);
         }
     }
@@ -204,66 +226,61 @@ zval* turboslim_http_stream_read_property(zval* object, zval* member, int type, 
     return zend_get_std_object_handlers()->read_property(object, member, type, cache_slot, rv);
 }
 
+void turboslim_http_stream_write_property(zval* object, zval* member, zval* value, void** cache_slot)
+{
+    if (Z_TYPE_P(member) == IS_STRING) {
+        zend_object* zobj = Z_OBJ_P(object);
+        zend_string* m    = Z_STR_P(member);
+        stream_t* x       = stream_from_zobj(zobj);
+        zval rv;
+
+        zend_class_entry* called_scope = get_executed_scope();
+        zend_bool is_public            = is_public_property(object, member);
+        if (is_public || zend_check_protected(ce_TurboSlim_Http_Stream, called_scope)) {
+            zend_ulong hash = ZSTR_HASH(m);
+
+            if (hash == zend_inline_hash_func(ZEND_STRL("stream")) && zend_string_equals_literal(m, "stream")) {
+                if (Z_TYPE_P(value) == IS_NULL) {
+                    detach(x);
+                }
+
+                return;
+            }
+        }
+        else if (is_my_property(x, m, &rv)) {
+            return;
+        }
+    }
+
+    return zend_get_std_object_handlers()->write_property(object, member, value, cache_slot);
+}
+
 int turboslim_http_stream_has_property(zval* object, zval* member, int has_set_exists, void** cache_slot)
 {
     if (Z_TYPE_P(member) == IS_STRING) {
         zend_object* zobj = Z_OBJ_P(object);
         zend_string* m    = Z_STR_P(member);
-        zend_ulong hash   = ZSTR_HASH(m);
-        zval* rv          = NULL;
-        zval z;
+        stream_t* x       = stream_from_zobj(zobj);
+        zval rv;
 
-        if (zend_check_protected(ce_TurboSlim_Http_Stream, zend_get_executed_scope())) {
-            stream_t* x = stream_from_zobj(zobj);
-
-            if (hash == zend_inline_hash_func(ZEND_STRL("stream")) && zend_string_equals_literal(m, "stream")) {
-                rv = &x->res;
-            }
-            else if (hash == zend_inline_hash_func(ZEND_STRL("meta")) && zend_string_equals_literal(m, "meta")) {
-                rv = &x->meta;
-            }
-            else if (hash == zend_inline_hash_func(ZEND_STRL("readable")) && zend_string_equals_literal(m, "readable")) {
-                ZVAL_BOOL(&z, x->readable);
-                rv = &z;
-            }
-            else if (hash == zend_inline_hash_func(ZEND_STRL("writable")) && zend_string_equals_literal(m, "writable")) {
-                ZVAL_BOOL(&z, x->writable);
-                rv = &z;
-            }
-            else if (hash == zend_inline_hash_func(ZEND_STRL("seekable")) && zend_string_equals_literal(m, "seekable")) {
-                ZVAL_BOOL(&z, x->seekable);
-                rv = &z;
-            }
-            else if (hash == zend_inline_hash_func(ZEND_STRL("size")) && zend_string_equals_literal(m, "size")) {
-                zend_long size = get_size(x);
-                if (size >= 0) {
-                    ZVAL_LONG(&z, size);
-                }
-                else {
-                    ZVAL_NULL(&z);
-                }
-
-                rv = &z;
-            }
-            else if (hash == zend_inline_hash_func(ZEND_STRL("isPipe")) && zend_string_equals_literal(m, "isPipe")) {
-                ZVAL_BOOL(&z, is_pipe(x));
-                rv = &z;
-            }
-
-            if (rv) {
+        zend_class_entry* called_scope = get_executed_scope();
+        zend_bool is_public            = is_public_property(object, member);
+        if (is_public || zend_check_protected(ce_TurboSlim_Http_Stream, called_scope)) {
+            zval* z = is_my_property(x, m, &rv);
+            if (z) {
                 switch (has_set_exists) {
                     /* HAS: whether property exists and is not NULL */
-                    case 0: return Z_TYPE_P(rv) != IS_NULL;
+                    case 0: return Z_TYPE_P(z) != IS_NULL;
                     /* SET: whether property exists and is true */
                     default:
                     case 1:
-                        return zend_is_true(rv);
+                        return zend_is_true(z);
                     /* EXISTS: whether property exists */
                     case 2: return 1;
                 }
             }
         }
-        else if (is_my_property(hash, m, BP_VAR_IS)) {
+        else if (is_my_property(x, m, &rv)) {
             return 0;
         }
     }
@@ -279,7 +296,8 @@ HashTable* turboslim_http_stream_get_properties(zval* object)
     zval* z;
     zval t;
 
-    if (zend_check_protected(ce_TurboSlim_Http_Stream, zend_get_executed_scope())) {
+    zend_class_entry* scope = get_executed_scope();
+    if (zend_check_protected(ce_TurboSlim_Http_Stream, scope) || scope == reflection_property_ptr) {
         if ((z = _zend_hash_str_add(ret, ZEND_STRL("stream"), &x->res ZEND_FILE_LINE_CC))) {
             Z_TRY_ADDREF_P(z);
         }
@@ -423,21 +441,6 @@ int turboslim_http_stream_cast_object(zval* readobj, zval* writeobj, int type)
     }
 
     return zend_std_cast_object_tostring(readobj, writeobj, type);
-}
-
-static void detach(stream_t* x)
-{
-    zval_ptr_dtor(&x->res);
-    ZVAL_NULL(&x->res);
-    x->stream = NULL;
-
-    zval_ptr_dtor(&x->meta);
-    ZVAL_NULL(&x->meta);
-
-    x->readable = 0;
-    x->writable = 0;
-    x->seekable = 0;
-    x->is_pipe  = -1;
 }
 
 static PHP_METHOD(TurboSlim_Http_Stream, attach)
