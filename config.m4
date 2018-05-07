@@ -18,6 +18,7 @@ turboslim/exception/invalidmethodexception.c
 turboslim/exception/notfoundexception.c
 turboslim/exception/methodnotallowedexception.c
 turboslim/http/body.c
+turboslim/http/requestbody.c
 turboslim/http/stream.c
 turboslim/internal/callablewrapper.c
 turboslim/internal/closure.c

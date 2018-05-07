@@ -19,6 +19,7 @@
 #include "turboslim/exception/turboslimexception.h"
 #include "turboslim/fastcollection.h"
 #include "turboslim/http/body.h"
+#include "turboslim/http/requestbody.h"
 #include "turboslim/http/stream.h"
 #include "turboslim/interfaces.h"
 #include "turboslim/internal/callablewrapper.h"
@@ -423,6 +424,13 @@ static void init_http_stream()
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Body", NULL);
     ce_TurboSlim_Http_Body = zend_register_internal_class(&ce);
     zend_do_inheritance(ce_TurboSlim_Http_Body, ce_TurboSlim_Http_Stream);
+
+    ce_TurboSlim_Http_Body->serialize   = zend_class_serialize_deny;
+    ce_TurboSlim_Http_Body->unserialize = zend_class_unserialize_deny;
+
+    INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\RequestBody", fe_TurboSlim_Http_RequestBody);
+    ce_TurboSlim_Http_RequestBody = zend_register_internal_class(&ce);
+    zend_do_inheritance(ce_TurboSlim_Http_RequestBody, ce_TurboSlim_Http_Body);
 
     ce_TurboSlim_Http_Body->serialize   = zend_class_serialize_deny;
     ce_TurboSlim_Http_Body->unserialize = zend_class_unserialize_deny;

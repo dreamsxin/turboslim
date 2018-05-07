@@ -378,8 +378,8 @@ int turboslim_http_stream_compare_objects(zval* z1, zval* z2)
     zend_object* zobj1 = Z_OBJ_P(z1);
     zend_object* zobj2 = Z_OBJ_P(z2);
 
-    if (zobj1->ce != zobj2->ce) {  /* LCOV_EXCL_BR_LINE */
-        return 1;                  /* LCOV_EXCL_LINE - this cannot be tested without dirty hacks */
+    if (zobj1->ce != zobj2->ce) {
+        return 1;
     }
 
     stream_t* v = stream_from_zobj(zobj1);
