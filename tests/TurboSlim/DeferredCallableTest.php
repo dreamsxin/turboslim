@@ -3,6 +3,7 @@ namespace TurboSlim\Tests;
 
 use TurboSlim\DeferredCallable;
 use TurboSlim\Tests\Helpers\CloneCompareTestTrait;
+use TurboSlim\Tests\Helpers\FakeResolver;
 use TurboSlim\Tests\Helpers\MyDeferredCallable;
 
 class DeferredCallableTest extends \PHPUnit\Framework\TestCase
@@ -11,29 +12,13 @@ class DeferredCallableTest extends \PHPUnit\Framework\TestCase
 
     public function testBasic()
     {
+        $container = new \TurboSlim\Container();
+        $container['callableResolver'] = function() {
+            return new FakeResolver();
+        };
+
         $c = new DeferredCallable('xxx');
         $this->assertTrue(\method_exists($c, 'resolveCallable'));
-
-        $container = new class implements \Psr\Container\ContainerInterface {
-            public function has($id)
-            {
-                return false;
-            }
-
-            public function get($id)
-            {
-                if ($id == 'callableResolver') {
-                    return new class implements \TurboSlim\Interfaces\CallableResolverInterface {
-                        public function resolve($s)
-                        {
-                            return $s;
-                        }
-                    };
-                }
-
-                return $id;
-            }
-        };
 
         $callable = function() {
             return "I am a closure, \$this is " . (isset($this) ? 'not NULL' : 'NULL');
@@ -58,17 +43,8 @@ class DeferredCallableTest extends \PHPUnit\Framework\TestCase
      */
     public function testUnexpectedValueException()
     {
-        $container = new class implements \Psr\Container\ContainerInterface {
-            public function has($id)
-            {
-                return false;
-            }
-
-            public function get($id)
-            {
-                return null;
-            }
-        };
+        $container = new \TurboSlim\Container();
+        $container['callableResolver'] = null;
 
         $callable = function() {
             return "I am a closure";
@@ -83,25 +59,9 @@ class DeferredCallableTest extends \PHPUnit\Framework\TestCase
      */
     public function testBadCallable()
     {
-        $container = new class implements \Psr\Container\ContainerInterface {
-            public function has($id)
-            {
-                return false;
-            }
-
-            public function get($id)
-            {
-                if ($id == 'callableResolver') {
-                    return new class implements \TurboSlim\Interfaces\CallableResolverInterface {
-                        public function resolve($s)
-                        {
-                            return $s;
-                        }
-                    };
-                }
-
-                return $id;
-            }
+        $container = new \TurboSlim\Container();
+        $container['callableResolver'] = function() {
+            return new FakeResolver();
         };
 
         $c = new \TurboSlim\DeferredCallable('bad-callable', $container);

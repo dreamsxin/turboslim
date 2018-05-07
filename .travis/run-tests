@@ -22,6 +22,8 @@
 		export TESTS
 		make test
 	else
+		ONECOVERAGE=1
+		export ONECOVERAGE
 		$(phpenv which php) tests/phpunit
 	fi
 )

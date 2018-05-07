@@ -5,6 +5,7 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
     use PHPUnit\Framework\TestListenerDefaultImplementation;
 
     private $enabled;
+    private $onecoverage;
 
     private $base;
     private $dir;
@@ -30,6 +31,8 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
             $this->enabled = false;
         }
 
+        $this->onecoverage = getenv("ONECOVERAGE");
+
         if ($this->enabled) {
             $this->dir       = dirname(__DIR__);
             $this->base      = dirname(__DIR__);
@@ -50,14 +53,28 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
     public function __destruct()
     {
         if ($this->enabled) {
-            $args = [];
-            foreach ($this->tests as $test) {
-                $args[] = '-a ' . \escapeshellarg($this->tracedir . $test . '.info');
-            }
+            if ($this->onecoverage) {
+                TurboSlim\flush_coverage();
 
-            $args[]  = '-o ' . \escapeshellarg($this->tracedir . 'COMBINED.info');
-            $command = 'lcov -q ' . join(' ', $args);
-            \passthru($command);
+                $command = \sprintf(
+                    'lcov --no-external --capture --directory %s --base %s --quiet --output-file %s',
+                    \escapeshellarg($this->dir),
+                    \escapeshellarg($this->base),
+                    \escapeshellarg($this->tracedir . 'COMBINED.info')
+                );
+
+                \passthru($command);
+            }
+            else {
+                $args = [];
+                foreach ($this->tests as $test) {
+                    $args[] = '-a ' . \escapeshellarg($this->tracedir . $test . '.info');
+                }
+
+                $args[]  = '-o ' . \escapeshellarg($this->tracedir . 'COMBINED.info');
+                $command = 'lcov -q ' . join(' ', $args);
+                \passthru($command);
+            }
 
             $command = \sprintf('genhtml -q -s -o %s %s', \escapeshellarg($this->tracedir . 'OUTPUT'), \escapeshellarg($this->tracedir . 'COMBINED.info'));
             \passthru($command);
@@ -66,7 +83,7 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
 
     public function endTest(PHPUnit\Framework\Test $test, $time)
     {
-        if ($this->enabled) {
+        if ($this->enabled && !$this->onecoverage) {
             TurboSlim\flush_coverage();
 
             $name  = $test->getName(false);
