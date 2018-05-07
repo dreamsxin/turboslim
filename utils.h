@@ -206,7 +206,7 @@ TURBOSLIM_ATTR_NONNULL static inline int is_turboslim_class(const zend_class_ent
 }
 
 #if PHP_VERSION_ID < 70100
-static inline zend_class_entry* zend_get_executed_scope(void)
+static inline zend_class_entry* zend_get_executed_scope()
 {
     zend_execute_data* ex = EG(current_execute_data);
 
@@ -223,6 +223,21 @@ static inline zend_class_entry* zend_get_executed_scope(void)
     }
 }
 #endif
+
+static inline zend_class_entry* get_executed_scope()
+{
+#if PHP_VERSION_ID < 70100
+    if (EG(scope)) {
+        return EG(scope);
+    }
+#else
+    if (EG(fake_scope)) {
+        return EG(fake_scope);
+    }
+#endif
+
+    return zend_get_executed_scope();
+}
 
 TURBOSLIM_ATTR_NONNULL static inline int turboslim_register_class_alias_ex(const char* name, size_t name_len, zend_class_entry* ce)
 {

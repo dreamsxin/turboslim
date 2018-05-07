@@ -106,7 +106,7 @@ static zend_bool is_public_property(zval* object, zval* member)
 zval* turboslim_collection_read_property(zval* object, zval* member, int type, void** cache_slot, zval *rv)
 {
     if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "data")) {
-        zend_class_entry* called_scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
+        zend_class_entry* called_scope = get_executed_scope();
         zend_bool is_public            = is_public_property(object, member);
         if (is_public || zend_check_protected(ce_TurboSlim_Collection, called_scope)) {
             zend_object* zobj = Z_OBJ_P(object);
@@ -127,7 +127,7 @@ zval* turboslim_collection_read_property(zval* object, zval* member, int type, v
 void turboslim_collection_write_property(zval* object, zval* member, zval* value, void** cache_slot)
 {
     if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "data")) {
-        zend_class_entry* called_scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
+        zend_class_entry* called_scope = get_executed_scope();
         zend_bool is_public            = is_public_property(object, member);
         if (is_public || zend_check_protected(ce_TurboSlim_Collection, called_scope)) {
             zend_object* zobj = Z_OBJ_P(object);
@@ -160,7 +160,7 @@ void turboslim_collection_write_property(zval* object, zval* member, zval* value
 int turboslim_collection_has_property(zval* object, zval* member, int has_set_exists, void** cache_slot)
 {
     if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "data")) {
-        zend_class_entry* called_scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
+        zend_class_entry* called_scope = get_executed_scope();
         zend_bool is_public            = is_public_property(object, member);
         if (is_public || zend_check_protected(ce_TurboSlim_Collection, called_scope)) {
             zend_object* zobj = Z_OBJ_P(object);
@@ -186,7 +186,7 @@ int turboslim_collection_has_property(zval* object, zval* member, int has_set_ex
 void turboslim_collection_unset_property(zval* object, zval* member, void** cache_slot)
 {
     if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "data")) {
-        zend_class_entry* called_scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
+        zend_class_entry* called_scope = get_executed_scope();
         zend_bool is_public            = is_public_property(object, member);
         if (is_public || zend_check_protected(ce_TurboSlim_Collection, called_scope)) {
             zend_object* zobj = Z_OBJ_P(object);
