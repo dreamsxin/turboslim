@@ -1,30 +1,11 @@
 #include "php_turboslim.h"
 
 #include <ext/standard/info.h>
-#include <traits/callableresolverawaretrait.h>
-#include "exception/containerexception.h"
-#include "exception/containervaluenotfoundexception.h"
-#include "exception/invalidmethodexception.h"
-#include "exception/methodnotallowedexception.h"
-#include "exception/notfoundexception.h"
-#include "exception/turboslimexception.h"
-#include "internal/closure.h"
-#include "internal/container.h"
-#include "internal/internalclass.h"
-#include "http/body.h"
-#include "http/stream.h"
-#include "callableresolver.h"
-#include "callablewrapper.h"
-#include "collection.h"
-#include "container.h"
-#include "deferredcallable.h"
-#include "fastcollection.h"
-#include "interfaces.h"
+#include "init.h"
+#include "turboslim/interfaces.h"
+#include "turboslim/valgrind/valgrind.h"
 #include "persistent.h"
-#include "psr7.h"
-#include "psr11.h"
 #include "utils.h"
-#include "valgrind/valgrind.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(turboslim);
 
@@ -35,40 +16,7 @@ static PHP_GINIT_FUNCTION(turboslim)
 
 static PHP_MINIT_FUNCTION(turboslim)
 {
-    /* Init common data structures */
-    init_persistent_data();
-
-    /* Init interfaces */
-    maybe_init_psr7();
-    maybe_init_psr11();
-    init_interfaces();
-
-    /* Init exceptions */
-    init_turbo_slim_exception();
-    init_container_exception();
-    init_container_value_not_found_exception();
-    init_invalid_method_exception();
-    init_method_not_allowed_exception();
-    init_not_found_exception();
-
-    /* Init traits */
-    init_callable_resolver_aware_trait();
-
-    /* Init internal classes */
-    init_turboslim_closure();
-    init_callable_wrapper();
-    init_internal_container_classes();
-
-    /* Init other classes */
-    init_callable_resolver();
-    init_collection();
-    init_container();
-    init_deferred_callable();
-    init_fast_collection();
-    init_http_stream();
-    init_http_body();
-
-    return SUCCESS;
+    return init_module();
 }
 
 static PHP_MSHUTDOWN_FUNCTION(turboslim)
@@ -188,7 +136,6 @@ zend_module_entry turboslim_module_entry = {
     NULL,
     STANDARD_MODULE_PROPERTIES_EX
 };
-
 
 #ifdef COMPILE_DL_TURBOSLIM
 ZEND_GET_MODULE(turboslim)

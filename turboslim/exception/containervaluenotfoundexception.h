@@ -1,0 +1,8 @@
+#ifndef TURBOSLIM_EXCEPTION_CONTAINERVALUENOTFOUNDEXCEPTION_H
+#define TURBOSLIM_EXCEPTION_CONTAINERVALUENOTFOUNDEXCEPTION_H
+
+#include "php_turboslim.h"
+
+extern zend_class_entry* ce_TurboSlim_Exception_ContainerValueNotFoundException;
+
+#endif /* TURBOSLIM_EXCEPTION_CONTAINERVALUENOTFOUNDEXCEPTION_H */

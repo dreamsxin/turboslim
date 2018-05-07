@@ -1,5 +1,5 @@
 --TEST--
-Indirect Collection modifications (ArrayAccess)
+Indirect Collection modifications (CollectionInterface)
 --SKIPIF--
 <?php include('skipif.inc'); ?>
 --FILE--

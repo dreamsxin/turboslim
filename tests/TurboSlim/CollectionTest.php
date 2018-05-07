@@ -2,9 +2,12 @@
 namespace TurboSlim\Tests;
 
 use TurboSlim\Collection;
+use TurboSlim\Tests\Helpers\CloneCompareTestTrait;
 
 class CollectionTest extends \PHPUnit\Framework\TestCase
 {
+    use CloneCompareTestTrait;
+
     public function testConstruct()
     {
         $c = new Collection();
@@ -94,5 +97,11 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
 
         $c->clear();
         $this->assertEquals(0, \count($c));
+    }
+
+    public function testCloneCompare()
+    {
+        $orig = new Collection(['a' => 'b']);
+        $this->checkCloneCompare($orig);
     }
 }

@@ -2,9 +2,12 @@
 namespace TurboSlim\Tests;
 
 use TurboSlim\DeferredCallable;
+use TurboSlim\Tests\Helpers\CloneCompareTestTrait;
 
 class DeferredCallableTest extends \PHPUnit\Framework\TestCase
 {
+    use CloneCompareTestTrait;
+
     public function testBasic()
     {
         $c = new DeferredCallable('xxx');
@@ -103,5 +106,24 @@ class DeferredCallableTest extends \PHPUnit\Framework\TestCase
         $c = new \TurboSlim\DeferredCallable('bad-callable', $container);
         $c();
         // E_WARNING: function 'bad-callable' not found or invalid function name
+    }
+
+    public function testCloneCompare()
+    {
+        $orig = new DeferredCallable('time');
+        $this->checkCloneCompare($orig);
+    }
+
+    public function testCompare()
+    {
+        $a = new DeferredCallable('time');
+        $b = new DeferredCallable('date');
+        $c = new DeferredCallable('date');
+
+        $this->assertTrue($a != $b);
+        $this->assertTrue($b == $c);
+
+        $b->prop = 'val';
+        $this->assertTrue($b != $c);
     }
 }

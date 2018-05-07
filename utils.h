@@ -196,6 +196,15 @@ TURBOSLIM_ATTR_NONNULL static inline int is_turboslim_func(const zend_function* 
     ;
 }
 
+TURBOSLIM_ATTR_NONNULL static inline int is_turboslim_class(const zend_class_entry* ce)
+{
+    return
+           (ce->type == ZEND_INTERNAL_CLASS)
+        && (ce->info.internal.module != NULL)
+        && (ce->info.internal.module->handle == turboslim_module_entry.handle)
+    ;
+}
+
 #if PHP_VERSION_ID < 70100
 static inline zend_class_entry* zend_get_executed_scope(void)
 {
