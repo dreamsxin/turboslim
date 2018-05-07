@@ -149,13 +149,7 @@ class RequestBodyTest extends \PHPUnit\Framework\TestCase
     {
         $this->body->close();
 
-        // Cannot emulate this type of access
-        // $this->assertAttributeEquals(null, 'stream', $this->body);
-        // This should be used instead:
-        $bodyStream = new ReflectionProperty($this->body, 'stream');
-        $bodyStream->setAccessible(true);
-        $value = $bodyStream->getValue($this->body);
-        $this->assertNull($value);
+        $this->assertAttributeEquals(null, 'stream', $this->body);
 
         $this->assertFalse($this->body->isReadable());
         $this->assertFalse($this->body->isWritable());

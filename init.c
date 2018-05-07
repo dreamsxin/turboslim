@@ -404,6 +404,13 @@ static void init_http_stream()
     zend_class_implements(ce_TurboSlim_Http_Stream, 1, ce_Psr_Http_Message_StreamInterface);
 
     zend_declare_class_constant_long(ce_TurboSlim_Http_Stream, ZEND_STRL("FSTAT_MODE_S_IFIFO"), S_IFIFO);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("stream"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("meta"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("readable"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("writable"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("seekable"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("size"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Stream, ZEND_STRL("isPipe"), ZEND_ACC_PROTECTED);
 
     ce_TurboSlim_Http_Stream->create_object = turboslim_http_stream_create_object;
     ce_TurboSlim_Http_Stream->serialize     = zend_class_serialize_deny;
@@ -420,7 +427,6 @@ static void init_http_stream()
     turboslim_http_stream_handlers.get_gc          = turboslim_http_stream_get_gc;
     turboslim_http_stream_handlers.cast_object     = turboslim_http_stream_cast_object;
     turboslim_http_stream_handlers.compare_objects = turboslim_http_stream_compare_objects;
-    turboslim_http_stream_handlers.get_debug_info  = turboslim_http_stream_get_debug_info;
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Body", NULL);
     ce_TurboSlim_Http_Body = zend_register_internal_class(&ce);

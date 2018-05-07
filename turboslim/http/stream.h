@@ -20,16 +20,6 @@
  *     (see `SlimBugs\Tests\StreamTest::testSlimWrongResource()`);
  *   * `stream` property is semi-writable (you can only write `null` to it, which is equivalent to calling `detahc()`);
  *      all other properties are read-only;
- *   * since the properties are not real, PHPUnit's `assertAttributeEquals()` will not work (you need to use `ReflectionProperty` instead);
- *      ```
- *      // Cannot emulate this type of access
- *      $this->assertAttributeEquals(null, 'stream', $body);
- *      // This should be used instead:
- *      $bodyStream = new ReflectionProperty($body, 'stream');
- *      $bodyStream->setAccessible(true);
- *      $value = $bodyStream->getValue($body);
- *      $this->assertNull($value);
- *      ```
  *   * TurboSlim does not populate stream metadata unless absolutely necessary (that is, until `getMetadata()` is called explicitly):
  *     it can get readabe/writable/seekable status more efficiently directly from the stream, avoiding a call to `stream_get_meta_data`.
  */
@@ -49,7 +39,6 @@ typedef struct turboslim_http_stream {
     signed char is_pipe;
     zend_bool turboslim_class;
     zend_bool fast_tostring;
-    zend_bool fast_debug;
     zend_object std;
 } turboslim_http_stream_t;
 
@@ -65,7 +54,6 @@ TURBOSLIM_VISIBILITY_HIDDEN zval* turboslim_http_stream_read_property(zval* obje
 TURBOSLIM_VISIBILITY_HIDDEN void turboslim_http_stream_write_property(zval* object, zval* member, zval* value, void** cache_slot);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_http_stream_has_property(zval* object, zval* member, int has_set_exists, void** cache_slot);
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_http_stream_get_properties(zval* object);
-TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_http_stream_get_debug_info(zval* object, int* is_temp);
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_http_stream_get_gc(zval* object, zval** table, int* n);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_http_stream_compare_objects(zval* z1, zval* z2);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_http_stream_cast_object(zval* readobj, zval* writeobj, int type);

@@ -8,8 +8,6 @@
 #include "turboslim/psr7.h"
 #include "utils.h"
 
-extern zend_class_entry* reflection_property_ptr;
-
 zend_class_entry* ce_TurboSlim_Http_Stream = NULL;
 zend_object_handlers turboslim_http_stream_handlers;
 
@@ -71,7 +69,6 @@ static void handle_inheritance(zend_class_entry* ce, stream_t* v)
     v->turboslim_class = (ce->type == ZEND_INTERNAL_CLASS && ce->info.internal.module->handle == turboslim_module_entry.handle);
     if (v->turboslim_class) {
         v->fast_tostring = 1;
-        v->fast_debug    = 1;
     }
     else {
         zend_function* f1;
@@ -81,19 +78,7 @@ static void handle_inheritance(zend_class_entry* ce, stream_t* v)
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("rewind"));
         f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("getcontents"));
         f3 = ce->__tostring;
-        if (is_turboslim_func(f1) && is_turboslim_func(f2) && is_turboslim_func(f3)) {
-            v->fast_tostring = 1;
-        }
-        else {
-            v->fast_tostring = 0;
-        }
-
-        if (is_turboslim_func(ce->__debugInfo)) {
-            v->fast_debug = 1;
-        }
-        else {
-            v->fast_debug = 0;
-        }
+        v->fast_tostring = (is_turboslim_func(f1) && is_turboslim_func(f2) && is_turboslim_func(f3));
     }
 }
 
@@ -294,91 +279,42 @@ HashTable* turboslim_http_stream_get_properties(zval* object)
     stream_t* x       = stream_from_zobj(zobj);
     HashTable* ret    = zend_std_get_properties(object);
     zval* z;
-    zval t;
 
-    zend_class_entry* scope = get_executed_scope();
-    if (zend_check_protected(ce_TurboSlim_Http_Stream, scope) || scope == reflection_property_ptr) {
-        if ((z = _zend_hash_str_add(ret, ZEND_STRL("stream"), &x->res ZEND_FILE_LINE_CC))) {
-            Z_TRY_ADDREF_P(z);
-        }
+    z = OBJ_PROP_NUM(zobj, 0);
+    zval_ptr_dtor(z);
+    ZVAL_COPY(z, &x->res);
 
-        if ((z = _zend_hash_str_add(ret, ZEND_STRL("meta"), &x->meta ZEND_FILE_LINE_CC))) {
-            Z_TRY_ADDREF_P(z);
-        }
+    z = OBJ_PROP_NUM(zobj, 1);
+    zval_ptr_dtor(z);
+    ZVAL_COPY(z, &x->meta);
 
-        ZVAL_BOOL(&t, x->readable);
-        _zend_hash_str_add(ret, ZEND_STRL("readable"), &t ZEND_FILE_LINE_CC);
+    z = OBJ_PROP_NUM(zobj, 2);
+    zval_ptr_dtor(z);
+    ZVAL_BOOL(z, x->readable);
 
-        ZVAL_BOOL(&t, x->writable);
-        _zend_hash_str_add(ret, ZEND_STRL("writable"), &t ZEND_FILE_LINE_CC);
+    z = OBJ_PROP_NUM(zobj, 3);
+    zval_ptr_dtor(z);
+    ZVAL_BOOL(z, x->writable);
 
-        ZVAL_BOOL(&t, x->seekable);
-        _zend_hash_str_add(ret, ZEND_STRL("seekable"), &t ZEND_FILE_LINE_CC);
+    z = OBJ_PROP_NUM(zobj, 4);
+    zval_ptr_dtor(z);
+    ZVAL_BOOL(z, x->seekable);
 
-        zend_long size = get_size(x);
-        if (size >= 0) {
-            ZVAL_LONG(&t, size);
-        }
-        else {
-            ZVAL_NULL(&t);
-        }
-
-        _zend_hash_str_add(ret, ZEND_STRL("size"), &t ZEND_FILE_LINE_CC);
-
-        ZVAL_BOOL(&t, is_pipe(x));
-        _zend_hash_str_add(ret, ZEND_STRL("isPipe"), &t ZEND_FILE_LINE_CC);
+    z = OBJ_PROP_NUM(zobj, 5);
+    zval_ptr_dtor(z);
+    zend_long size = get_size(x);
+    if (size >= 0) {
+        ZVAL_LONG(z, size);
     }
+    else {
+        ZVAL_NULL(z);
+    }
+
+    z = OBJ_PROP_NUM(zobj, 6);
+    zval_ptr_dtor(z);
+    ZVAL_BOOL(z, is_pipe(x));
 
     return ret;
-}
-
-static HashTable* get_debug_info_fast(stream_t* x, zval* object)
-{
-    HashTable* ret;
-    zval* z;
-    zval t;
-
-    ALLOC_HASHTABLE(ret);
-    zend_hash_init(ret, 8, NULL, ZVAL_PTR_DTOR, 0);
-
-    if ((z = _zend_hash_str_add(ret, ZEND_STRL("stream:protected"), &x->res ZEND_FILE_LINE_CC))) {
-        Z_TRY_ADDREF_P(z);
-    }
-
-    if ((z = _zend_hash_str_add(ret, ZEND_STRL("meta:protected"), &x->meta ZEND_FILE_LINE_CC))) {
-        Z_TRY_ADDREF_P(z);
-    }
-
-    ZVAL_BOOL(&t, x->readable);
-    _zend_hash_str_add(ret, ZEND_STRL("readable:protected"), &t ZEND_FILE_LINE_CC);
-
-    ZVAL_BOOL(&t, x->writable);
-    _zend_hash_str_add(ret, ZEND_STRL("writable:protected"), &t ZEND_FILE_LINE_CC);
-
-    ZVAL_BOOL(&t, x->seekable);
-    _zend_hash_str_add(ret, ZEND_STRL("seekable:protected"), &t ZEND_FILE_LINE_CC);
-
-    ZVAL_LONG(&t, get_size(x));
-    _zend_hash_str_add(ret, ZEND_STRL("size:protected"), &t ZEND_FILE_LINE_CC);
-
-    ZVAL_BOOL(&t, is_pipe(x));
-    _zend_hash_str_add(ret, ZEND_STRL("isPipe:protected"), &t ZEND_FILE_LINE_CC);
-
-    HashTable* std = zend_std_get_properties(object);
-    zend_hash_copy(ret, std, zval_add_ref);
-
-    return ret;
-}
-
-HashTable* turboslim_http_stream_get_debug_info(zval* object, int* is_temp)
-{
-    stream_t* v = stream_from_zobj(Z_OBJ_P(object));
-    if (v->fast_debug) {
-        *is_temp = 1;
-        return get_debug_info_fast(v, object);
-    }
-
-    return zend_std_get_debug_info(object, is_temp);
 }
 
 HashTable* turboslim_http_stream_get_gc(zval* object, zval** table, int* n)
@@ -872,20 +808,6 @@ static PHP_METHOD(TurboSlim_Http_Stream, isPipe)
     RETURN_BOOL(is_pipe(x));
 }
 
-static PHP_METHOD(TurboSlim_Http_Stream, __debugInfo)
-{
-    /* LCOV_EXCL_BR_START */
-    ZEND_PARSE_PARAMETERS_START(0, 0)
-    ZEND_PARSE_PARAMETERS_END();
-    /* LCOV_EXCL_BR_STOP */
-
-    zval* this_ptr = get_this(execute_data);
-    stream_t* v    = stream_from_zobj(Z_OBJ_P(this_ptr));
-    HashTable* ht  = get_debug_info_fast(v, this_ptr);
-
-    RETURN_ARR(ht);
-}
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_empty, 0, ZEND_RETURN_VALUE, 0)
 ZEND_END_ARG_INFO();
 
@@ -910,9 +832,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_write, 0, ZEND_RETURN_VALUE, 1)
     ZEND_ARG_INFO(0, string)
 ZEND_END_ARG_INFO();
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo___debuginfo, 0, ZEND_RETURN_VALUE, 0)
-ZEND_END_ARG_INFO();
-
 const zend_function_entry fe_TurboSlim_Http_Stream[] = {
     ZEND_ME(TurboSlim_Http_Stream, __construct, arginfo_attach,      ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
     ZEND_ME(TurboSlim_Http_Stream, getMetadata, arginfo_getmetadata, ZEND_ACC_PUBLIC)
@@ -933,6 +852,5 @@ const zend_function_entry fe_TurboSlim_Http_Stream[] = {
     ZEND_ME(TurboSlim_Http_Stream, write,       arginfo_write,       ZEND_ACC_PUBLIC)
     ZEND_ME(TurboSlim_Http_Stream, getContents, arginfo_empty,       ZEND_ACC_PUBLIC)
     ZEND_ME(TurboSlim_Http_Stream, isPipe,      arginfo_empty,       ZEND_ACC_PUBLIC)
-    ZEND_ME(TurboSlim_Http_Stream, __debugInfo, arginfo___debuginfo, ZEND_ACC_PUBLIC)
     ZEND_FE_END
 };
