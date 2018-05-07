@@ -27,7 +27,7 @@ int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zva
         return SUCCESS;
     }
 
-    ZVAL_NEW_STR(&tmp, str_callableResolver);
+    ZVAL_STR(&tmp, str_callableResolver);
     zend_call_method_with_1_params(container, Z_OBJCE_P(container), NULL, "get", &resolver, &tmp);
     /* Do not run zval_ptr_dtor(&tmp) - str_callableResolver is used elsewhere */
     if (UNEXPECTED(EG(exception))) {
