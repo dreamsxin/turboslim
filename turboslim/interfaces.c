@@ -138,7 +138,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_http_cookiesinterface_parseheader, 0, ZEND_RETURN
     ZEND_ARG_INFO(0, header)
 ZEND_END_ARG_INFO()
 
-/* mixed func(array $settings = null) */
+/* mixed func(array $settings = []) */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_environmentinterface_mock, 0, ZEND_RETURN_VALUE, 0)
     ZEND_ARG_ARRAY_INFO(0, settings, 0)
 ZEND_END_ARG_INFO()
