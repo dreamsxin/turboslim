@@ -97,9 +97,8 @@ void turboslim_container_getCallableFromWrapper(zval* return_value, zval* wrappe
 {
     assert(Z_TYPE_P(wrapper) == IS_OBJECT);     /* LCOV_EXCL_BR_LINE */
     zend_object* obj     = Z_OBJ_P(wrapper);
-    zend_class_entry* ce = obj->ce;
 
-    assert(is_supported_ce(ce));                /* LCOV_EXCL_BR_LINE */
+    assert(is_supported_ce(obj->ce));           /* LCOV_EXCL_BR_LINE */
     wrapper_t* w = (wrapper_t*)obj;
     ZVAL_COPY(return_value, &w->orig);
 }

@@ -291,6 +291,7 @@ static void init_collection()
     /* TurboSlim\Collection */
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Collection", fe_TurboSlim_Collection);
     ce_TurboSlim_Collection = zend_register_internal_class(&ce);
+    zend_declare_property_ex(ce_TurboSlim_Collection, str_data, &znull, ZEND_ACC_PROTECTED, NULL);
 
     ce_TurboSlim_Collection->create_object = turboslim_collection_create_object;
     ce_TurboSlim_Collection->get_iterator  = turboslim_collection_get_iterator;
@@ -381,6 +382,7 @@ static void init_deferred_callable()
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\DeferredCallable", fe_TurboSlim_DeferredCallable);
     ce_TurboSlim_DeferredCallable = zend_register_internal_class(&ce);
+    zend_declare_property_ex(ce_TurboSlim_DeferredCallable, str_callable,  &znull, ZEND_ACC_PRIVATE, NULL);
     zend_declare_property_ex(ce_TurboSlim_DeferredCallable, str_container, &znull, ZEND_ACC_PRIVATE, NULL);
 
     ce_TurboSlim_DeferredCallable->create_object = turboslim_deferredcallable_create_object;
@@ -392,6 +394,7 @@ static void init_deferred_callable()
     turboslim_deferredcallable_handlers.free_obj        = turboslim_deferredcallable_free_obj;
     turboslim_deferredcallable_handlers.clone_obj       = turboslim_deferredcallable_clone_obj;
     turboslim_deferredcallable_handlers.read_property   = turboslim_deferredcallable_read_property;
+    turboslim_deferredcallable_handlers.get_properties  = turboslim_deferredcallable_get_properties;
     turboslim_deferredcallable_handlers.get_gc          = turboslim_deferredcallable_get_gc;
     turboslim_deferredcallable_handlers.compare_objects = turboslim_deferredcallable_compare_objects;
 }
@@ -430,15 +433,13 @@ static void init_http_stream()
     turboslim_http_stream_handlers.compare_objects = turboslim_http_stream_compare_objects;
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Body", NULL);
-    ce_TurboSlim_Http_Body = zend_register_internal_class(&ce);
-    zend_do_inheritance(ce_TurboSlim_Http_Body, ce_TurboSlim_Http_Stream);
+    ce_TurboSlim_Http_Body = zend_register_internal_class_ex(&ce, ce_TurboSlim_Http_Stream);
 
     ce_TurboSlim_Http_Body->serialize   = zend_class_serialize_deny;
     ce_TurboSlim_Http_Body->unserialize = zend_class_unserialize_deny;
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\RequestBody", fe_TurboSlim_Http_RequestBody);
-    ce_TurboSlim_Http_RequestBody = zend_register_internal_class(&ce);
-    zend_do_inheritance(ce_TurboSlim_Http_RequestBody, ce_TurboSlim_Http_Body);
+    ce_TurboSlim_Http_RequestBody = zend_register_internal_class_ex(&ce, ce_TurboSlim_Http_Body);
 
     ce_TurboSlim_Http_Body->serialize   = zend_class_serialize_deny;
     ce_TurboSlim_Http_Body->unserialize = zend_class_unserialize_deny;

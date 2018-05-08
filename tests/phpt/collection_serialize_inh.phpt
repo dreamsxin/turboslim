@@ -26,6 +26,16 @@ var_dump($d);
 var_dump($c == $d);
 var_dump($c !== $d);
 
+// Trying to overwrite internal data array
+$s = 'C:12:"MyCollection":46:{a:1:{s:1:"a";s:1:"b";}a:1:{s:7:"' . "\0" . '*' . "\0" . 'data";i:1;}}';
+try {
+	$d = unserialize($s);
+	var_dump($d);
+}
+catch (UnexpectedValueException $e) {
+	echo $e->getMessage(), PHP_EOL;
+}
+
 try {
 	$s = 'C:12:"MyCollection":28:{a:a:{s:1:"a";s:1:"b";}a:0:{}}';
 	unserialize($s);
@@ -45,14 +55,14 @@ catch (UnexpectedValueException $e) {
 --EXPECTF--
 C:12:"MyCollection":28:{a:1:{s:1:"a";s:1:"b";}a:0:{}}
 object(MyCollection)#%d (1) {
-  ["data"]=>
+  ["data":protected]=>
   array(1) {
     ["a"]=>
     string(1) "b"
   }
 }
 object(MyCollection)#%d (1) {
-  ["data"]=>
+  ["data":protected]=>
   array(1) {
     ["a"]=>
     string(1) "b"
@@ -60,5 +70,6 @@ object(MyCollection)#%d (1) {
 }
 bool(true)
 bool(true)
+Error at offset %d of %d bytes
 Error at offset %d of %d bytes
 Error at offset %d of %d bytes

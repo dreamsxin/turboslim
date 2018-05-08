@@ -1,10 +1,10 @@
 <?php
 namespace TurboSlim\Benchmarks;
 
-use Pimple\Container;
+use Slim\Container;
 use TurboSlim\Benchmarks\Base\ContainerBenchBase;
 
-class PimpleContainerBench extends ContainerBenchBase
+class SlimContainerBench extends ContainerBenchBase
 {
     public function __construct()
     {

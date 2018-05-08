@@ -84,6 +84,24 @@ zval* turboslim_deferredcallable_read_property(zval* object, zval* member, int t
     return zend_get_std_object_handlers()->read_property(object, member, type, cache_slot, rv);
 }
 
+HashTable* turboslim_deferredcallable_get_properties(zval* object)
+{
+    zend_object* zobj      = Z_OBJ_P(object);
+    deferred_callable_t* x = dc_from_zobj(zobj);
+    HashTable* ret         = zend_std_get_properties(object);
+    zval* z;
+
+    z = OBJ_PROP_NUM(zobj, 0);
+    zval_ptr_dtor(z);
+    ZVAL_COPY(z, &x->callable);
+
+    z = OBJ_PROP_NUM(zobj, 1);
+    zval_ptr_dtor(z);
+    ZVAL_COPY(z, &x->container);
+
+    return ret;
+}
+
 HashTable* turboslim_deferredcallable_get_gc(zval* obj, zval** table, int* n)
 {
     deferred_callable_t* v = dc_from_zobj(Z_OBJ_P(obj));

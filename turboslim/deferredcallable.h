@@ -19,8 +19,9 @@ TURBOSLIM_VISIBILITY_HIDDEN extern const zend_function_entry fe_TurboSlim_Deferr
 TURBOSLIM_VISIBILITY_HIDDEN zend_object* turboslim_deferredcallable_create_object(zend_class_entry* ce);
 TURBOSLIM_VISIBILITY_HIDDEN void turboslim_deferredcallable_free_obj(zend_object* obj);
 TURBOSLIM_VISIBILITY_HIDDEN zend_object* turboslim_deferredcallable_clone_obj(zval* obj);
+TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_deferredcallable_get_properties(zval* object);
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_deferredcallable_get_gc(zval* obj, zval** table, int* n);
-/* CallableResolverAwareTrait need r/o access to $container */
+/* CallableResolverAwareTrait needs r/o access to $container */
 TURBOSLIM_VISIBILITY_HIDDEN zval* turboslim_deferredcallable_read_property(zval* object, zval* member, int type, void** cache_slot, zval* rv);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_deferredcallable_compare_objects(zval* object1, zval* object2);
 

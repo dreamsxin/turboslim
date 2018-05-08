@@ -96,15 +96,20 @@ zval* turboslim_collection_read_property(zval* object, zval* member, int type, v
 {
     if (Z_TYPE_P(member) == IS_STRING && zend_string_equals_literal(Z_STR_P(member), "data")) {
         zend_class_entry* called_scope = get_executed_scope();
-        zend_bool is_public            = is_public_property(object, member);
-        if (is_public || zend_check_protected(ce_TurboSlim_Collection, called_scope)) {
-            zend_object* zobj = Z_OBJ_P(object);
-            collection_t* v   = collection_from_zobj(zobj);
+        zend_object* zobj              = Z_OBJ_P(object);
+
+        if (zend_check_protected(ce_TurboSlim_Collection, called_scope)) {
+            collection_t* v = collection_from_zobj(zobj);
             return &v->data;
         }
 
-        if (!is_public && type != BP_VAR_IS) {
-            zend_throw_error(NULL, "Cannot access protected property %s::$%s", ZSTR_VAL(ce_TurboSlim_Collection->name), Z_STRVAL_P(member));
+        zend_property_info* p = zend_get_property_info(zobj->ce, Z_STR_P(member), 1);
+        if (p == ZEND_WRONG_PROPERTY_INFO || !p) {
+            if (type != BP_VAR_IS) {
+                zend_throw_error(NULL, "Cannot access private property %s::$%s", ZSTR_VAL(ce_TurboSlim_Collection->name), Z_STRVAL_P(member));
+            }
+
+            return &EG(uninitialized_zval);
         }
 
         return &EG(uninitialized_zval);
@@ -328,12 +333,12 @@ HashTable* turboslim_collection_get_properties(zval* object)
 {
     zend_object* zobj = Z_OBJ_P(object);
     collection_t* v   = collection_from_zobj(zobj);
+    HashTable* res   = zend_std_get_properties(object);
     zval* z;
 
-    HashTable* res = zend_std_get_properties(object);
-    if ((z = zend_hash_update(res, str_data, &v->data))) {
-        Z_ADDREF_P(z);
-    }
+    z = OBJ_PROP_NUM(zobj, 0);
+    zval_ptr_dtor(z);
+    ZVAL_COPY(z, &v->data);
 
     return res;
 }
@@ -343,8 +348,8 @@ int turboslim_collection_compare_objects(zval* object1, zval* object2)
     zend_object* zobj1 = Z_OBJ_P(object1);
     zend_object* zobj2 = Z_OBJ_P(object2);
 
-    if (zobj1->ce != zobj2->ce) {  /* LCOV_EXCL_BR_LINE */
-        return 1;                  /* LCOV_EXCL_LINE - this cannot be tested without dirty hacks */
+    if (zobj1->ce != zobj2->ce) {
+        return 1;
     }
 
     collection_t* v1 = collection_from_zobj(zobj1);
@@ -378,24 +383,79 @@ zend_object_iterator* turboslim_collection_get_iterator(zend_class_entry* ce, zv
     return it;
 }
 
-int turboslim_collection_serialize(zval* object, unsigned char** buffer, size_t* buf_len, zend_serialize_data* data)
+static zend_string* do_serialize(zval* object, php_serialize_data_t data)
 {
     zend_object* zobj = Z_OBJ_P(object);
     collection_t* c   = collection_from_zobj(zobj);
     smart_str buf     = { NULL, 0 };
+
+    PHP_VAR_SERIALIZE_INIT(data);
+        zval z;
+        php_var_serialize(&buf, &c->data, &data);
+
+        /* We have serailized c->data; now remove it from the object hash */
+        zval tmp;
+        zval* zz = OBJ_PROP_NUM(zobj, 0);
+        ZVAL_COPY_VALUE(&tmp, zz);
+        ZVAL_UNDEF(zz);
+        ZVAL_ARR(&z, zend_std_get_properties(object));
+
+        php_var_serialize(&buf, &z, &data);
+
+        ZVAL_COPY_VALUE(zz, &tmp);
+    PHP_VAR_SERIALIZE_DESTROY(data);
+
+    return buf.s;
+}
+
+int turboslim_collection_serialize(zval* object, unsigned char** buffer, size_t* buf_len, zend_serialize_data* data)
+{
     php_serialize_data_t var_hash = (php_serialize_data_t)data;
 
-    PHP_VAR_SERIALIZE_INIT(var_hash);
-        zval z;
-        php_var_serialize(&buf, &c->data, &var_hash);
+    zend_string* s = do_serialize(object, var_hash);
+    if (s) {
+        *buffer  = (unsigned char*)estrndup(ZSTR_VAL(s), ZSTR_LEN(s));
+        *buf_len = ZSTR_LEN(s);
+        zend_string_release(s);
+        return SUCCESS;
+    }
 
-        ZVAL_ARR(&z, zend_std_get_properties(object));
-        php_var_serialize(&buf, &z, &var_hash);
-    PHP_VAR_SERIALIZE_DESTROY(var_hash);
+    return FAILURE;
+}
 
-    *buffer  = (unsigned char*)estrndup(ZSTR_VAL(buf.s), ZSTR_LEN(buf.s));
-    *buf_len = ZSTR_LEN(buf.s);
-    zend_string_release(buf.s);
+static int do_unserialize(zval* rval, const unsigned char** p, const unsigned char* max, php_unserialize_data_t unserialize_data)
+{
+    zend_object* zobj = Z_OBJ_P(rval);
+    collection_t* c   = collection_from_zobj(zobj);
+    zval* zv;
+
+    PHP_VAR_UNSERIALIZE_INIT(unserialize_data);
+
+    zv = var_tmp_var(&unserialize_data);
+    if (!php_var_unserialize(zv, p, max, &unserialize_data) || Z_TYPE_P(zv) != IS_ARRAY) {
+        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
+        return FAILURE;
+    }
+
+    zend_hash_copy(Z_ARRVAL(c->data), Z_ARRVAL_P(zv), zval_add_ref);
+
+    zv = var_tmp_var(&unserialize_data);
+    if (!php_var_unserialize(zv, p, max, &unserialize_data) || Z_TYPE_P(zv) != IS_ARRAY) {
+        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
+        return FAILURE;
+    }
+
+    /*
+     * Check if someone wants to overwrite $data and bail out if so
+     */
+    if (zend_hash_str_exists(Z_ARRVAL_P(zv), ZEND_STRL("\0*\0data"))) {
+        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
+        return FAILURE;
+    }
+
+    object_properties_load(&c->std, Z_ARRVAL_P(zv));
+    PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
+
     return SUCCESS;
 }
 
@@ -404,31 +464,9 @@ int turboslim_collection_unserialize(zval *object, zend_class_entry *ce, const u
     php_unserialize_data_t unserialize_data = (php_unserialize_data_t)data;
     const unsigned char* p   = buf;
     const unsigned char* max = p + buf_len;
-    zval* zv;
-
-    PHP_VAR_UNSERIALIZE_INIT(unserialize_data);
 
     object_init_ex(object, ce);
-    zend_object* zobj = Z_OBJ_P(object);
-    collection_t* c   = collection_from_zobj(zobj);
-
-    zv = var_tmp_var(&unserialize_data);
-    if (!php_var_unserialize(zv, &p, max, &unserialize_data) || Z_TYPE_P(zv) != IS_ARRAY) {
-        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
-        return FAILURE;
-    }
-
-    zend_hash_copy(Z_ARRVAL(c->data), Z_ARRVAL_P(zv), zval_add_ref);
-
-    zv = var_tmp_var(&unserialize_data);
-    if (!php_var_unserialize(zv, &p, max, &unserialize_data) || Z_TYPE_P(zv) != IS_ARRAY) {
-        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
-        return FAILURE;
-    }
-
-    object_properties_load(&c->std, Z_ARRVAL_P(zv));
-    PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
-    return SUCCESS;
+    return do_unserialize(object, &p, max, unserialize_data);
 }
 
 /*
@@ -715,30 +753,20 @@ static PHP_METHOD(TurboSlim_Collection, offsetSet)
  */
 static PHP_METHOD(TurboSlim_Collection, serialize)
 {
-    zval* this_ptr    = get_this(execute_data);
-    zend_object* zobj = Z_OBJ_P(this_ptr);
-    collection_t* c   = collection_from_zobj(zobj);
-    smart_str buf     = { NULL, 0 };
-    php_serialize_data_t var_hash;
+    zval* this_ptr = get_this(execute_data);
+    php_serialize_data_t var_hash = NULL;
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(0, 0)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    PHP_VAR_SERIALIZE_INIT(var_hash);
-        zval z;
-        php_var_serialize(&buf, &c->data, &var_hash);
-
-        ZVAL_ARR(&z, zend_std_get_properties(this_ptr));
-        php_var_serialize(&buf, &z, &var_hash);
-    PHP_VAR_SERIALIZE_DESTROY(var_hash);
-
-    if (buf.s) {
-        RETURN_NEW_STR(buf.s);
+    zend_string* s = do_serialize(this_ptr, var_hash);
+    if (s) {
+        RETURN_NEW_STR(s);
     }
 
-    RETURN_NULL();
+    RETURN_EMPTY_STRING();
 }
 
 /*
@@ -746,14 +774,10 @@ static PHP_METHOD(TurboSlim_Collection, serialize)
  */
 static PHP_METHOD(TurboSlim_Collection, unserialize)
 {
-    zval* this_ptr    = get_this(execute_data);
-    zend_object* zobj = Z_OBJ_P(this_ptr);
-    collection_t* c   = collection_from_zobj(zobj);
-
-    php_unserialize_data_t unserialize_data;
+    zval* this_ptr = get_this(execute_data);
+    php_unserialize_data_t unserialize_data = NULL;
     char* buf;
     size_t buf_len;
-    zval* zv;
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -761,33 +785,12 @@ static PHP_METHOD(TurboSlim_Collection, unserialize)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    if (!buf_len) {
-        return;
-    }
-
     const unsigned char* p   = (const unsigned char*)buf;
     const unsigned char* max = p + buf_len;
 
-    PHP_VAR_UNSERIALIZE_INIT(unserialize_data);
-    zv = var_tmp_var(&unserialize_data);
-    if (!php_var_unserialize(zv, &p, max, &unserialize_data) || Z_TYPE_P(zv) != IS_ARRAY) {
-        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
+    if (FAILURE == do_unserialize(this_ptr, &p, max, unserialize_data)) {
         zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0, "Error at offset " ZEND_LONG_FMT " of %zd bytes", (zend_long)((char*)p - buf), buf_len);
-        return;
     }
-
-    zval_ptr_dtor(&c->data);
-    ZVAL_COPY(&c->data, zv);
-
-    zv = var_tmp_var(&unserialize_data);
-    if (!php_var_unserialize(zv, &p, max, &unserialize_data) || Z_TYPE_P(zv) != IS_ARRAY) {
-        PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
-        zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0, "Error at offset " ZEND_LONG_FMT " of %zd bytes", (zend_long)((char*)p - buf), buf_len);
-        return;
-    }
-
-    object_properties_load(&c->std, Z_ARRVAL_P(zv));
-    PHP_VAR_UNSERIALIZE_DESTROY(unserialize_data);
 }
 
 /*

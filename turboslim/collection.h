@@ -32,7 +32,8 @@ TURBOSLIM_VISIBILITY_HIDDEN int turboslim_collection_count_elements(zval* object
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_collection_get_properties(zval* object);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_collection_compare_objects(zval* object1, zval* object2);
 TURBOSLIM_VISIBILITY_HIDDEN zend_object_iterator* turboslim_collection_get_iterator(zend_class_entry* ce, zval* object, int by_ref);
-TURBOSLIM_VISIBILITY_HIDDEN int turboslim_collection_serialize(zval* object, unsigned char** buffer, size_t* buf_len, zend_serialize_data* data);
-TURBOSLIM_VISIBILITY_HIDDEN int turboslim_collection_unserialize(zval *object, zend_class_entry *ce, const unsigned char *buf, size_t buf_len, zend_unserialize_data *data);
+int turboslim_collection_serialize(zval* object, unsigned char** buffer, size_t* buf_len, zend_serialize_data* data);
+int turboslim_collection_unserialize(zval *object, zend_class_entry *ce, const unsigned char *buf, size_t buf_len, zend_unserialize_data *data);
+
 
 #endif /* TURBOSLIM_COLLECTION_H */

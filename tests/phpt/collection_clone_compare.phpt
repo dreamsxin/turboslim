@@ -25,14 +25,14 @@ var_dump($d != $e);
 ?>
 --EXPECTF--
 object(TurboSlim\Collection)#%d (1) {
-  ["data"]=>
+  ["data":protected]=>
   array(1) {
     ["a"]=>
     string(1) "b"
   }
 }
 object(TurboSlim\Collection)#%d (1) {
-  ["data"]=>
+  ["data":protected]=>
   array(1) {
     ["a"]=>
     string(1) "b"
@@ -42,7 +42,7 @@ bool(true)
 bool(true)
 bool(false)
 object(TurboSlim\Collection)#%d (2) {
-  ["data"]=>
+  ["data":protected]=>
   array(1) {
     ["a"]=>
     string(1) "b"
@@ -52,7 +52,7 @@ object(TurboSlim\Collection)#%d (2) {
   }
 }
 object(TurboSlim\Collection)#%d (2) {
-  ["data"]=>
+  ["data":protected]=>
   array(1) {
     ["a"]=>
     string(1) "b"

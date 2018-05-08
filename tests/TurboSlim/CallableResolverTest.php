@@ -4,9 +4,12 @@ namespace TurboSlim\Tests;
 use TurboSlim\CallableResolver;
 use TurboSlim\Container;
 use TurboSlim\Tests\Helpers\CallableResolverTestHelper2;
+use TurboSlim\Tests\Helpers\CloneCompareTestTrait;
 
 class CallableResolverTest extends \PHPUnit\Framework\TestCase
 {
+    use CloneCompareTestTrait;
+
     private $container;
     private $anotherContainer;
 
@@ -103,5 +106,10 @@ class CallableResolverTest extends \PHPUnit\Framework\TestCase
 
         $c2->property = 'value';
         $this->assertTrue($c1 != $c2);
+    }
+
+    public function testCloneCompare()
+    {
+        $this->checkCloneCompare(new CallableResolver($this->container));
     }
 }

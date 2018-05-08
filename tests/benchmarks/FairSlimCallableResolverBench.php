@@ -1,11 +1,11 @@
 <?php
 namespace TurboSlim\Benchmarks;
 
-use TurboSlim\CallableResolver;
+use Slim\CallableResolver;
 use TurboSlim\Container;
 use TurboSlim\Benchmarks\Base\CallableResolverBenchBase;
 
-class TurboSlimCallableResolverBench extends CallableResolverBenchBase
+class FairSlimCallableResolverBench extends CallableResolverBenchBase
 {
     public function __construct()
     {
