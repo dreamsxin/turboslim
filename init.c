@@ -19,6 +19,7 @@
 #include "turboslim/exception/turboslimexception.h"
 #include "turboslim/fastcollection.h"
 #include "turboslim/http/body.h"
+#include "turboslim/http/environment.h"
 #include "turboslim/http/requestbody.h"
 #include "turboslim/http/stream.h"
 #include "turboslim/interfaces.h"
@@ -445,6 +446,15 @@ static void init_http_stream()
     ce_TurboSlim_Http_Body->unserialize = zend_class_unserialize_deny;
 }
 
+static void init_http_environment()
+{
+    zend_class_entry ce;
+
+    INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Environment", fe_TurboSlim_Http_Environment);
+    ce_TurboSlim_Http_Environment = zend_register_internal_class_ex(&ce, ce_TurboSlim_Collection);
+    zend_class_implements(ce_TurboSlim_Http_Environment, 1, ce_TurboSlim_Interfaces_Http_EnvironmentInterface);
+}
+
 int init_module()
 {
     init_persistent_data();
@@ -463,6 +473,7 @@ int init_module()
     init_deferred_callable();
 
     init_http_stream();
+    init_http_environment();
 
     return SUCCESS;
 }
