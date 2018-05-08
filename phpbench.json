@@ -21,7 +21,7 @@
             "title": "Detail by subject",
             "description": "Sorted by mode",
             "extends": "aggregate",
-            "break": [ "subject" ],
+            "break": [ "groups", "subject" ],
             "cols": ["benchmark", "mem_peak", "best", "mean", "mode", "worst", "stdev", "rstdev", "diff"],
             "sort": { "mode": "asc" }
         },
