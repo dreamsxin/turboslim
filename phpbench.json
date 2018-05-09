@@ -1,5 +1,5 @@
 {
-    "bootstrap": "tests/bootstrap.php",
+    "bootstrap": "tests/bootstrap/bootstrap.php",
     "path": "tests/benchmarks/",
     "retry_threshold": 3,
     "time_unit": "seconds",

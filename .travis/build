@@ -27,9 +27,11 @@
 	export LDFLAGS
 	export EXTRA_LDFLAGS
 
+	phpize --clean
+	rm -f configure.ac configure.in
 	phpize && $CONFIGURE && $MAKE -j$(getconf _NPROCESSORS_ONLN) -B && make install
 	phpenv config-add .travis/turboslim.ini
-	composer update
+	[ -f composer.lock ] || composer update
 )
 
 exit $?
