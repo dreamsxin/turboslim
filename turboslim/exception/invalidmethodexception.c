@@ -45,7 +45,7 @@ static PHP_METHOD(TurboSlim_Exception_InvalidMethodException, __construct)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    zend_update_property_ex(ce_TurboSlim_Exception_InvalidMethodException, this_ptr, str_request, request);
+    zend_update_property_ex(ce_TurboSlim_Exception_InvalidMethodException, this_ptr, TSKSTR(TKS_request), request);
 
     zend_function* ctor = spl_ce_InvalidArgumentException->constructor;
     if (EXPECTED(ctor != NULL)) {
@@ -68,7 +68,7 @@ static PHP_METHOD(TurboSlim_Exception_InvalidMethodException, getRequest)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    ZVAL_COPY(return_value, read_property_ex(ce_TurboSlim_Exception_InvalidMethodException, this_ptr, str_request, 0, &rv));
+    ZVAL_COPY(return_value, read_property_ex(ce_TurboSlim_Exception_InvalidMethodException, this_ptr, TSKSTR(TKS_request), 0, &rv));
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, ZEND_RETURN_VALUE, 2)

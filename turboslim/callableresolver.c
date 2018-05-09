@@ -82,7 +82,7 @@ HashTable* turboslim_callableresolver_get_properties(zval* object)
 
     HashTable* res = zend_std_get_properties(object);
     Z_ADDREF(v->container);
-    zend_hash_update(res, str_container, &v->container);
+    zend_hash_update(res, TSKSTR(TKS_container), &v->container);
     return res;
 }
 

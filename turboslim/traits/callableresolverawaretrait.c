@@ -17,7 +17,7 @@ int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zva
     zval resolver;
     zval tmp;
 
-    zval* container = read_property_ex(scope, this_ptr, str_container, 0, &tmp);
+    zval* container = read_property_ex(scope, this_ptr, TSKSTR(TKS_container), 0, &tmp);
     if (UNEXPECTED(EG(exception))) {
         return FAILURE;
     }
@@ -27,7 +27,7 @@ int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zva
         return SUCCESS;
     }
 
-    ZVAL_STR(&tmp, str_callableResolver);
+    ZVAL_STR(&tmp, TSKSTR(TKS_callableResolver));
     zend_call_method_with_1_params(container, Z_OBJCE_P(container), NULL, "get", &resolver, &tmp);
     /* Do not run zval_ptr_dtor(&tmp) - str_callableResolver is used elsewhere */
     if (UNEXPECTED(EG(exception))) {

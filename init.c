@@ -292,7 +292,7 @@ static void init_collection()
     /* TurboSlim\Collection */
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Collection", fe_TurboSlim_Collection);
     ce_TurboSlim_Collection = zend_register_internal_class(&ce);
-    zend_declare_property_ex(ce_TurboSlim_Collection, str_data, &znull, ZEND_ACC_PROTECTED, NULL);
+    zend_declare_property_ex(ce_TurboSlim_Collection, TSKSTR(TKS_data), &znull, ZEND_ACC_PROTECTED, NULL);
 
     ce_TurboSlim_Collection->create_object = turboslim_collection_create_object;
     ce_TurboSlim_Collection->get_iterator  = turboslim_collection_get_iterator;
@@ -383,8 +383,8 @@ static void init_deferred_callable()
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\DeferredCallable", fe_TurboSlim_DeferredCallable);
     ce_TurboSlim_DeferredCallable = zend_register_internal_class(&ce);
-    zend_declare_property_ex(ce_TurboSlim_DeferredCallable, str_callable,  &znull, ZEND_ACC_PRIVATE, NULL);
-    zend_declare_property_ex(ce_TurboSlim_DeferredCallable, str_container, &znull, ZEND_ACC_PRIVATE, NULL);
+    zend_declare_property_ex(ce_TurboSlim_DeferredCallable, TSKSTR(TKS_callable),  &znull, ZEND_ACC_PRIVATE, NULL);
+    zend_declare_property_ex(ce_TurboSlim_DeferredCallable, TSKSTR(TKS_container), &znull, ZEND_ACC_PRIVATE, NULL);
 
     ce_TurboSlim_DeferredCallable->create_object = turboslim_deferredcallable_create_object;
     ce_TurboSlim_DeferredCallable->serialize     = zend_class_serialize_deny;

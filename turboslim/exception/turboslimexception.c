@@ -24,8 +24,8 @@ static PHP_METHOD(TurboSlim_Exception_TurboSlimException, __construct)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    zend_update_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, str_request, request);
-    zend_update_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, str_response, response);
+    zend_update_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, TSKSTR(TKS_request), request);
+    zend_update_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, TSKSTR(TKS_response), response);
 
     zend_function* ctor = zend_ce_exception->constructor;
     if (EXPECTED(ctor != NULL)) {
@@ -46,7 +46,7 @@ static PHP_METHOD(TurboSlim_Exception_TurboSlimException, getRequest)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    ZVAL_COPY(return_value, read_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, str_request, 0, &rv));
+    ZVAL_COPY(return_value, read_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, TSKSTR(TKS_request), 0, &rv));
 }
 
 /*
@@ -62,7 +62,7 @@ static PHP_METHOD(TurboSlim_Exception_TurboSlimException, getResponse)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    ZVAL_COPY(return_value, read_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, str_response, 0, &rv));
+    ZVAL_COPY(return_value, read_property_ex(ce_TurboSlim_Exception_TurboSlimException, this_ptr, TSKSTR(TKS_response), 0, &rv));
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, ZEND_RETURN_VALUE, 2)

@@ -510,7 +510,7 @@ static void register_default_services(container_t* c, zval* this_ptr, zval* user
     zval_ptr_dtor(&settings);
 
     zval key;
-    ZVAL_STR(&key, str_settings);
+    ZVAL_STR(&key, TSKSTR(TKS_settings));
     Z_TRY_ADDREF(key);
     set_item(c, &key, &fc);
 
@@ -577,7 +577,7 @@ static PHP_METHOD(TurboSlim_Container, __construct)
         ZEND_HASH_FOREACH_END();
 
         if (set_defaults) {
-            user_settings = zend_hash_find(values, str_settings);
+            user_settings = zend_hash_find(values, TSKSTR(TKS_settings));
         }
     }
 

@@ -4,7 +4,7 @@
 #include <ext/standard/php_array.h>
 #include "utils.h"
 
-zend_class_entry* ce_TurboSlim_Http_Environment;
+zend_class_entry* ce_TurboSlim_Http_Environment = NULL;
 
 /*
  * $https = (isset($ht['HTTPS']) && $ht['HTTPS'] !== 'off') || (isset($ht['REQUEST_SCHEME']) && $ht['REQUEST_SCHEME'] === 'https')

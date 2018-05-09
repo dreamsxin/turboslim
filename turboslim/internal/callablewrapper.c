@@ -31,7 +31,11 @@ PHP_METHOD(TurboSlim_Internal_CallableWrapper, __invoke)
 
     assert(bound != NULL);                      /* LCOV_EXCL_BR_LINE */
 
-    zval* callable = turboslim_closure_get_callable(this_ptr, &fci, &fcc);
+#ifndef NDEBUG
+    zval* callable =
+#endif
+                     turboslim_closure_get_callable(this_ptr, &fci, &fcc)
+    ;
     zval* next     = zend_hash_index_find(bound, 0);
 
     assert(callable != NULL && next != NULL);   /* LCOV_EXCL_BR_LINE */
