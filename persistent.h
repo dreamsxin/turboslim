@@ -54,7 +54,6 @@ TURBOSLIM_VISIBILITY_HIDDEN extern zend_string* str_magic_function;
 TURBOSLIM_VISIBILITY_HIDDEN extern zval znull;
 TURBOSLIM_VISIBILITY_HIDDEN extern zval zundef;
 TURBOSLIM_VISIBILITY_HIDDEN extern zval zemptyarr;
-TURBOSLIM_VISIBILITY_HIDDEN extern zval zemptystr;
 
 TURBOSLIM_VISIBILITY_HIDDEN extern zval container_default_settings;
 

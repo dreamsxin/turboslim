@@ -19,6 +19,7 @@
 #include "turboslim/exception/turboslimexception.h"
 #include "turboslim/fastcollection.h"
 #include "turboslim/http/body.h"
+#include "turboslim/http/cookies.h"
 #include "turboslim/http/environment.h"
 #include "turboslim/http/requestbody.h"
 #include "turboslim/http/stream.h"
@@ -446,6 +447,31 @@ static void init_http_stream()
     ce_TurboSlim_Http_Body->unserialize = zend_class_unserialize_deny;
 }
 
+static void init_http_cookies()
+{
+    zend_class_entry ce;
+
+    INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Cookies", fe_TurboSlim_Http_Cookies);
+    ce_TurboSlim_Http_Cookies = zend_register_internal_class(&ce);
+    zend_class_implements(ce_TurboSlim_Http_Cookies, 1, ce_TurboSlim_Interfaces_Http_CookiesInterface);
+
+    ce_TurboSlim_Http_Cookies->create_object = turboslim_http_cookies_create_object;
+
+    zend_declare_property_null(ce_TurboSlim_Http_Cookies, ZEND_STRL("requestCookies"),  ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Cookies, ZEND_STRL("responseCookies"), ZEND_ACC_PROTECTED);
+    zend_declare_property_null(ce_TurboSlim_Http_Cookies, ZEND_STRL("defaults"),        ZEND_ACC_PROTECTED);
+
+    memcpy(&turboslim_http_cookies_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+    turboslim_http_cookies_handlers.offset          = XtOffsetOf(turboslim_http_cookies_t, std);
+    turboslim_http_cookies_handlers.free_obj        = turboslim_http_cookies_free_obj;
+    turboslim_http_cookies_handlers.clone_obj       = turboslim_http_cookies_clone_obj;
+    turboslim_http_cookies_handlers.read_property   = turboslim_http_stream_cookies_read_property;
+    turboslim_http_cookies_handlers.has_property    = turboslim_http_cookies_has_property;
+    turboslim_http_cookies_handlers.get_properties  = turboslim_http_cookies_get_properties;
+    turboslim_http_cookies_handlers.get_gc          = turboslim_http_cookies_get_gc;
+    turboslim_http_cookies_handlers.compare_objects = turboslim_http_cookies_compare_objects;
+}
+
 static void init_http_environment()
 {
     zend_class_entry ce;
@@ -473,6 +499,7 @@ int init_module()
     init_deferred_callable();
 
     init_http_stream();
+    init_http_cookies();
     init_http_environment();
 
     return SUCCESS;

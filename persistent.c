@@ -10,7 +10,6 @@ zend_string* str_magic_function         = NULL;
 zval znull;
 zval zundef;
 zval zemptyarr;
-zval zemptystr;
 zval container_default_settings;
 
 static const char* known_strings[] = {
@@ -64,7 +63,6 @@ int init_persistent_data()
 
     ZVAL_NULL(&znull);
     ZVAL_UNDEF(&zundef);
-    ZVAL_EMPTY_STRING(&zemptystr);
 
     ZVAL_NEW_PERSISTENT_ARR(&zemptyarr);
     zend_hash_init(Z_ARRVAL(zemptyarr), 0, NULL, ZVAL_PTR_DTOR, 1);
