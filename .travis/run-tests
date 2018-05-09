@@ -27,7 +27,7 @@
 	else
 		ONECOVERAGE=1
 		export ONECOVERAGE
-		shift
+		[ $# -gt 0 ] && shift
 		$(phpenv which php) tests/phpunit "$@"
 	fi
 )
