@@ -34,8 +34,8 @@ class LCovTestListener implements PHPUnit\Framework\TestListener
         $this->onecoverage = getenv("ONECOVERAGE");
 
         if ($this->enabled) {
-            $this->dir       = dirname(__DIR__);
-            $this->base      = dirname(__DIR__);
+            $this->dir       = dirname(dirname(__DIR__));
+            $this->base      = dirname(dirname(__DIR__));
             $this->tracedir  = $this->base . '/coverage/';
 
             if (\is_dir($this->base . '/coverage')) {
