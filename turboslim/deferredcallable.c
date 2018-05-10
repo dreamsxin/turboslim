@@ -3,6 +3,7 @@
 #include <Zend/zend_closures.h>
 #include <Zend/zend_inheritance.h>
 #include <Zend/zend_interfaces.h>
+#include <Zend/zend_operators.h>
 #include "turboslim/psr11.h"
 #include "turboslim/traits/callableresolverawaretrait.h"
 #include "persistent.h"
@@ -77,28 +78,38 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
             container = &znull;
         }
 
-        /* The code is equivalent for $callable = $callable->bindTo($this->container); */
+        if (!zend_is_identical(container, zend_get_closure_this_ptr(&callable))) {
+            /* The code is equivalent for $callable = $callable->bindTo($this->container); */
 #if PHP_VERSION_ID < 70114
-        static zend_function* proxy = NULL;
-        zend_call_method(&callable, zend_ce_closure, &proxy, ZEND_STRL("bindto"), &new_callable, 1, container, NULL);
+            static zend_function* proxy = NULL;
+            zend_call_method(&callable, zend_ce_closure, &proxy, ZEND_STRL("bindto"), &new_callable, 1, container, NULL);
 #else
-        zend_function* func            = (zend_function*)zend_get_closure_method_def(&callable);
-        zend_class_entry* called_scope = (IS_OBJECT == Z_TYPE_P(container)) ? Z_OBJCE_P(container) : func->common.scope;
-        zend_class_entry* ce           = func->common.scope;
-        zend_create_closure(&new_callable, func, ce, called_scope, container);
+            zend_function* func            = (zend_function*)zend_get_closure_method_def(&callable);
+            zend_class_entry* called_scope = (IS_OBJECT == Z_TYPE_P(container)) ? Z_OBJCE_P(container) : func->common.scope;
+            zend_class_entry* ce           = func->common.scope;
+            zend_create_closure(&new_callable, func, ce, called_scope, container);
 #endif
 
-        zval_ptr_dtor(&callable);
-        ZVAL_COPY_VALUE(&callable, &new_callable);
+            zval_ptr_dtor(&callable);
+            ZVAL_COPY_VALUE(&callable, &new_callable);
 
-        if (!Z_OBJ_HANDLER_P(&callable, get_closure) || FAILURE == Z_OBJ_HANDLER_P(&callable, get_closure)(&callable, &fcc.calling_scope, &fcc.function_handler, &fcc.object)) {
-            fcc.function_handler = NULL;
+            if (!Z_OBJ_HANDLER(callable, get_closure) || FAILURE == Z_OBJ_HANDLER(callable, get_closure)(&callable, &fcc.calling_scope, &fcc.function_handler, &fcc.object)) {
+#ifdef COVERAGE
+                /*
+                 * lcov incorrectly shows that `fcc.function_handler = NULL` line is hit;
+                 * if `memset()` is not hit, `fcc` is not either
+                 */
+                memset(&fcc, 0, sizeof(fcc));
+#endif
+                fcc.function_handler = NULL;
+            }
         }
     }
 
-    if (!fcc.function_handler) {
+    if (UNEXPECTED(!fcc.function_handler)) {
+        /* We usually land here is the callable is not resolvable */
         char* error;
-        if (UNEXPECTED(FAILURE == zend_fcall_info_init(&callable, 0, &fci, &fcc, NULL, &error))) {
+        if (EXPECTED(FAILURE == zend_fcall_info_init(&callable, 0, &fci, &fcc, NULL, &error))) {
             zval_ptr_dtor(&callable);
             zend_error(E_WARNING, "%s\n", error);
             efree(error);
