@@ -3,138 +3,23 @@
 #include <Zend/zend_closures.h>
 #include <Zend/zend_inheritance.h>
 #include <Zend/zend_interfaces.h>
-#include "traits/callableresolverawaretrait.h"
-#include "psr11.h"
+#include "turboslim/psr11.h"
+#include "turboslim/traits/callableresolverawaretrait.h"
+#include "persistent.h"
 #include "utils.h"
 
 #include <Zend/zend_compile.h>
 
 zend_class_entry* ce_TurboSlim_DeferredCallable = NULL;
-zend_object_handlers turboslim_deferredcallable_handlers;
 
-typedef turboslim_deferredcallable_t deferred_callable_t;
-
-static inline deferred_callable_t* dc_from_zobj(const zend_object* obj)
+static inline zval* get_callable(zend_object* zobj)
 {
-    return (deferred_callable_t*)((char*)(obj) - XtOffsetOf(deferred_callable_t, std));
+    return OBJ_PROP_NUM(zobj, 0);
 }
 
-zend_object* turboslim_deferredcallable_create_object(zend_class_entry* ce)
+static inline zval* get_container(zend_object* zobj)
 {
-    deferred_callable_t* v = ecalloc(1, sizeof(deferred_callable_t) + zend_object_properties_size(ce));
-
-    zend_object_std_init(&v->std, ce);
-    object_properties_init(&v->std, ce);
-    v->std.handlers = &turboslim_deferredcallable_handlers;
-
-    ZVAL_UNDEF(&v->callable);
-    ZVAL_NULL(&v->container);
-    return &v->std;
-}
-
-void turboslim_deferredcallable_free_obj(zend_object* obj)
-{
-    deferred_callable_t* v = dc_from_zobj(obj);
-
-    zend_object_std_dtor(&v->std);
-    zval_ptr_dtor(&v->callable);
-    zval_ptr_dtor(&v->container);
-}
-
-zend_object* turboslim_deferredcallable_clone_obj(zval* obj)
-{
-    zend_object* old_object     = Z_OBJ_P(obj);
-    zend_object* new_object     = turboslim_deferredcallable_create_object(old_object->ce);
-    deferred_callable_t* mine   = dc_from_zobj(old_object);
-    deferred_callable_t* theirs = dc_from_zobj(new_object);
-
-    ZVAL_COPY(&theirs->callable,  &mine->callable);
-    ZVAL_COPY(&theirs->container, &mine->container);
-
-    zend_objects_clone_members(new_object, old_object);
-    return new_object;
-}
-
-/**
- * @todo There can be a different $container in a child
- */
-zval* turboslim_deferredcallable_read_property(zval* object, zval* member, int type, void** cache_slot, zval* rv)
-{
-    if (Z_TYPE_P(member) == IS_STRING) {
-        zend_object* zobj = Z_OBJ_P(object);
-        zend_class_entry* scope = get_executed_scope();
-
-        if (zend_string_equals_literal(Z_STR_P(member), "container")) {
-            if (ce_TurboSlim_DeferredCallable == scope) {
-                deferred_callable_t* v = dc_from_zobj(zobj);
-                return &v->container;
-            }
-
-            zend_property_info* p = zend_get_property_info(zobj->ce, Z_STR_P(member), 1);
-            if (p == ZEND_WRONG_PROPERTY_INFO || !p) {
-                if (type != BP_VAR_IS) {
-                    zend_throw_error(NULL, "Cannot access private property %s::$%s", ZSTR_VAL(ce_TurboSlim_DeferredCallable->name), Z_STRVAL_P(member));
-                }
-
-                return &EG(uninitialized_zval);
-            }
-        }
-    }
-
-    return zend_get_std_object_handlers()->read_property(object, member, type, cache_slot, rv);
-}
-
-HashTable* turboslim_deferredcallable_get_properties(zval* object)
-{
-    zend_object* zobj      = Z_OBJ_P(object);
-    deferred_callable_t* x = dc_from_zobj(zobj);
-    HashTable* ret         = zend_std_get_properties(object);
-    zval* z;
-
-    z = OBJ_PROP_NUM(zobj, 0);
-    zval_ptr_dtor(z);
-    ZVAL_COPY(z, &x->callable);
-
-    z = OBJ_PROP_NUM(zobj, 1);
-    zval_ptr_dtor(z);
-    ZVAL_COPY(z, &x->container);
-
-    return ret;
-}
-
-HashTable* turboslim_deferredcallable_get_gc(zval* obj, zval** table, int* n)
-{
-    deferred_callable_t* v = dc_from_zobj(Z_OBJ_P(obj));
-
-    /* callable and container are located together */
-    *table = &v->callable;
-    *n     = 2;
-
-    return zend_std_get_properties(obj);
-}
-
-int turboslim_deferredcallable_compare_objects(zval* object1, zval* object2)
-{
-    zend_object* zobj1 = Z_OBJ_P(object1);
-    zend_object* zobj2 = Z_OBJ_P(object2);
-
-    if (zobj1->ce != zobj2->ce) {
-        return 1;
-    }
-
-    deferred_callable_t* v1 = dc_from_zobj(zobj1);
-    deferred_callable_t* v2 = dc_from_zobj(zobj2);
-
-    zval r;
-    if (UNEXPECTED(FAILURE == compare_function(&r, &v1->callable, &v2->callable)) || Z_LVAL(r) != 0) {
-        return 1;
-    }
-
-    if (UNEXPECTED(FAILURE == compare_function(&r, &v1->container, &v2->container)) || Z_LVAL(r) != 0) {
-        return 1;
-    }
-
-    return zend_get_std_object_handlers()->compare_objects(object1, object2);
+    return OBJ_PROP_NUM(zobj, 1);
 }
 
 /*
@@ -153,12 +38,12 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __construct)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    zval* this_ptr = get_this(execute_data);
-    deferred_callable_t* v = dc_from_zobj(Z_OBJ_P(this_ptr));
+    zval* this_ptr    = get_this(execute_data);
+    zend_object* zobj = Z_OBJ_P(this_ptr);
 
-    ZVAL_COPY(&v->callable, callable);
+    ZVAL_COPY(get_callable(zobj), callable);
     if (container) {
-        ZVAL_COPY(&v->container, container);
+        ZVAL_COPY(get_container(zobj), container);
     }
 }
 
@@ -174,24 +59,28 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    zval* this_ptr         = get_this(execute_data);
-    deferred_callable_t* v = dc_from_zobj(Z_OBJ_P(this_ptr));
-    if (FAILURE == turboslim_CallableResolverAwareTrait_resolveCallable(&callable, this_ptr, &v->callable)) {
+    zval* this_ptr    = get_this(execute_data);
+    zend_object* zobj = Z_OBJ_P(this_ptr);
+    if (FAILURE == turboslim_CallableResolverAwareTrait_resolveCallable(&callable, this_ptr, get_callable(zobj))) {
         return;
     }
 
     if (IS_OBJECT == Z_TYPE(callable) && instanceof_function(Z_OBJCE(callable), zend_ce_closure)) {
         zval new_callable;
+        zval* container = get_container(zobj);
+        if (Z_TYPE_P(container) != IS_OBJECT) {
+            container = &znull;
+        }
 
         /* The code is equivalent for $callable = $callable->bindTo($this->container); */
 #if PHP_VERSION_ID < 70114
         static zend_function* proxy = NULL;
-        zend_call_method(&callable, zend_ce_closure, &proxy, ZEND_STRL("bindto"), &new_callable, 1, &v->container, NULL);
+        zend_call_method(&callable, zend_ce_closure, &proxy, ZEND_STRL("bindto"), &new_callable, 1, container, NULL);
 #else
         zend_function* func            = (zend_function*)zend_get_closure_method_def(&callable);
-        zend_class_entry* called_scope = (IS_OBJECT == Z_TYPE(v->container)) ? Z_OBJCE(v->container) : func->common.scope;
+        zend_class_entry* called_scope = (IS_OBJECT == Z_TYPE_P(container)) ? Z_OBJCE_P(container) : func->common.scope;
         zend_class_entry* ce           = func->common.scope;
-        zend_create_closure(&new_callable, func, ce, called_scope, &v->container);
+        zend_create_closure(&new_callable, func, ce, called_scope, container);
 #endif
 
         zval_ptr_dtor(&callable);

@@ -378,18 +378,12 @@ static void init_deferred_callable()
     zend_declare_property_ex(ce_TurboSlim_DeferredCallable, TSKSTR(TKS_callable),  &znull, ZEND_ACC_PRIVATE, NULL);
     zend_declare_property_ex(ce_TurboSlim_DeferredCallable, TSKSTR(TKS_container), &znull, ZEND_ACC_PRIVATE, NULL);
 
-    ce_TurboSlim_DeferredCallable->create_object = turboslim_deferredcallable_create_object;
+//    ce_TurboSlim_DeferredCallable->create_object = turboslim_deferredcallable_create_object;
     ce_TurboSlim_DeferredCallable->serialize     = zend_class_serialize_deny;
     ce_TurboSlim_DeferredCallable->unserialize   = zend_class_unserialize_deny;
 
-    memcpy(&turboslim_deferredcallable_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    turboslim_deferredcallable_handlers.offset          = XtOffsetOf(turboslim_deferredcallable_t, std);
-    turboslim_deferredcallable_handlers.free_obj        = turboslim_deferredcallable_free_obj;
-    turboslim_deferredcallable_handlers.clone_obj       = turboslim_deferredcallable_clone_obj;
-    turboslim_deferredcallable_handlers.read_property   = turboslim_deferredcallable_read_property;
-    turboslim_deferredcallable_handlers.get_properties  = turboslim_deferredcallable_get_properties;
-    turboslim_deferredcallable_handlers.get_gc          = turboslim_deferredcallable_get_gc;
-    turboslim_deferredcallable_handlers.compare_objects = turboslim_deferredcallable_compare_objects;
+//    memcpy(&turboslim_deferredcallable_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+//    turboslim_deferredcallable_handlers.clone_obj = turboslim_deferredcallable_clone_obj;
 }
 
 static void init_http_stream()
