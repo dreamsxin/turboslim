@@ -7,6 +7,7 @@
 #include <ext/json/php_json.h>
 #include <ext/pcre/php_pcre.h>
 #include <ext/spl/spl_exceptions.h>
+#include "turboslim/container.h"
 #include "turboslim/interfaces.h"
 #include "turboslim/psr11.h"
 #include "persistent.h"
@@ -187,9 +188,9 @@ static void make_callable(zval* return_value, zval* obj, zval* method)
     } ZEND_HASH_FILL_END();
 }
 
-static void ensure_is_callable(zval* callable)
+static void ensure_is_callable(zval* callable, zend_fcall_info_cache* fcc)
 {
-    if (!zend_is_callable(callable, IS_CALLABLE_STRICT, NULL)) {
+    if (!zend_is_callable_ex(callable, NULL, 0, NULL, fcc, NULL)) {
         not_resolvable(callable);
         zval_ptr_dtor(callable);
         ZVAL_NULL(callable);
@@ -206,7 +207,7 @@ static void ensure_is_callable(zval* callable)
  * @param obj
  * @param method
  */
-static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* obj, zval* method)
+static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* obj, zval* method, zend_fcall_info_cache* fcc)
 {
     zval rv;
 
@@ -215,29 +216,45 @@ static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* o
     assert(!method || Z_TYPE_P(method) == IS_STRING);
     /* LCOV_EXCL_BR_STOP */
 
-    /*
-     *  if ($this->container->has($class)) {
-     *      return [$this->container->get($class), $method];
-     *  }
-     */
-    zend_call_method_with_1_params(&c->container, Z_OBJCE(c->container), NULL, "has", &rv, obj);
-    if (UNEXPECTED(EG(exception))) { /* has() should not throw, but anyway */
-        return;
-    }
-
-    int has = zend_is_true(&rv);
-    /* PSR-11 does not enforce the return type of has() */
-    maybe_destroy_zval(&rv);
-
-    if (has) {
-        zend_call_method_with_1_params(&c->container, Z_OBJCE(c->container), NULL, "get", &rv, obj);
-        if (UNEXPECTED(EG(exception))) {
+    zend_class_entry* container_ce = Z_OBJCE(c->container);
+    if (container_ce == ce_TurboSlim_Container) {
+        /* Fast path - container is TurboSlim\Container */
+        if (FAILURE == turboslim_Container_get(&rv, &c->container, obj, BP_VAR_IS)) {
             return;
         }
 
-        make_callable(return_value, &rv, method); /* make_callable assumes rv is a temporary variable, no need to destroy it */
-        ensure_is_callable(return_value);         /* Will kill return_value if not */
-        return;
+        /* if ($this->container->has($class)) */
+        if (Z_TYPE(rv) != IS_UNDEF) {
+            make_callable(return_value, &rv, method); /* make_callable assumes rv is a temporary variable, no need to destroy it */
+            ensure_is_callable(return_value, fcc);    /* Will kill return_value if not */
+            return;
+        }
+    }
+    else {
+        /*
+         *  if ($this->container->has($class)) {
+         *      return [$this->container->get($class), $method];
+         *  }
+         */
+        zend_call_method_with_1_params(&c->container, container_ce, NULL, "has", &rv, obj);
+        if (UNEXPECTED(EG(exception))) { /* has() should not throw, but anyway */
+            return;
+        }
+
+        int has = zend_is_true(&rv);
+        /* PSR-11 does not enforce the return type of has() */
+        maybe_destroy_zval(&rv);
+
+        if (has) {
+            zend_call_method_with_1_params(&c->container, Z_OBJCE(c->container), NULL, "get", &rv, obj);
+            if (UNEXPECTED(EG(exception))) {
+                return;
+            }
+
+            make_callable(return_value, &rv, method); /* make_callable assumes rv is a temporary variable, no need to destroy it */
+            ensure_is_callable(return_value, fcc);    /* Will kill return_value if not */
+            return;
+        }
     }
 
     /*
@@ -264,10 +281,10 @@ static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* o
     }
 
     make_callable(return_value, &rv, method); /* make_callable assumes rv is a temporary variable, no need to destroy it */
-    ensure_is_callable(return_value);         /* Will kill return_value if not */
+    ensure_is_callable(return_value, fcc);    /* Will kill return_value if not */
 }
 
-static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* callable)
+static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* callable, zend_fcall_info_cache* fcc)
 {
     pcre_cache_entry* pce = pcre_get_compiled_regex_cache(str_callable_pattern);
     int retval = 0;
@@ -290,7 +307,7 @@ static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* ca
 #endif
 
         if (zend_is_true(&rv) && Z_TYPE(subpats) == IS_ARRAY) {
-            resolve_callable(return_value, c, zend_hash_index_find(Z_ARRVAL(subpats), 1), zend_hash_index_find(Z_ARRVAL(subpats), 2));
+            resolve_callable(return_value, c, zend_hash_index_find(Z_ARRVAL(subpats), 1), zend_hash_index_find(Z_ARRVAL(subpats), 2), fcc);
             retval = 1;
         }
 
@@ -300,22 +317,11 @@ static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* ca
     return retval;
 }
 
-/*
- * public function resolve($toResolve)
- */
-static PHP_METHOD(TurboSlim_CallableResolver, resolve)
+void Turboslim_CallableResolver_resolve(zval* return_value, zval* this_ptr, zval* callable, zend_fcall_info_cache* fcc)
 {
-    zval* callable;
-    zval* this_ptr = get_this(execute_data);
     callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(this_ptr));
 
-    /* LCOV_EXCL_BR_START */
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_ZVAL(callable)
-    ZEND_PARSE_PARAMETERS_END();
-    /* LCOV_EXCL_BR_STOP */
-
-    if (zend_is_callable(callable, IS_CALLABLE_STRICT, NULL)) {
+    if (zend_is_callable_ex(callable, NULL, 0, NULL, fcc, NULL)) {
         RETURN_ZVAL(callable, 1, 0);
     }
 
@@ -330,11 +336,29 @@ static PHP_METHOD(TurboSlim_CallableResolver, resolve)
     }
 
     /* check for slim callable as "class:method" */
-    if (is_slim_callable(return_value, v, callable)) {
+    if (is_slim_callable(return_value, v, callable, fcc)) {
         return;
     }
 
-    resolve_callable(return_value, v, callable, NULL);
+    resolve_callable(return_value, v, callable, NULL, fcc);
+}
+
+/*
+ * public function resolve($toResolve)
+ */
+static PHP_METHOD(TurboSlim_CallableResolver, resolve)
+{
+    zval* callable;
+    zval* this_ptr = get_this(execute_data);
+    zend_fcall_info_cache fcc;
+
+    /* LCOV_EXCL_BR_START */
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_ZVAL(callable)
+    ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
+
+    Turboslim_CallableResolver_resolve(return_value, this_ptr, callable, &fcc);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, ZEND_RETURN_VALUE, 1)

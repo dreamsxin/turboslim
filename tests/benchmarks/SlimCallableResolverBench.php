@@ -9,6 +9,8 @@ class SlimCallableResolverBench extends CallableResolverBenchBase
 {
     public function __construct()
     {
+        parent::__construct();
+
         $container = new Container();
         $container['x'] = new class {
             public function method()
@@ -17,11 +19,5 @@ class SlimCallableResolverBench extends CallableResolverBenchBase
         };
 
         $this->x = new CallableResolver($container);
-
-        $this->invokable = new class {
-            public function __invoke()
-            {
-            }
-        };
     }
 }

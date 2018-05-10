@@ -20,4 +20,6 @@ TURBOSLIM_VISIBILITY_HIDDEN int turboslim_callableresolver_compare_objects(zval*
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_callableresolver_get_properties(zval* object);
 TURBOSLIM_VISIBILITY_HIDDEN HashTable* turboslim_callableresolver_get_gc(zval* object, zval** table, int* n);
 
+TURBOSLIM_ATTR_NONNULL TURBOSLIM_VISIBILITY_HIDDEN void Turboslim_CallableResolver_resolve(zval* return_value, zval* this_ptr, zval* callable, zend_fcall_info_cache* fcc);
+
 #endif /* TURBOSLIM_CALLABLERESOLVER_H */

@@ -815,6 +815,24 @@ static PHP_METHOD(TurboSlim_Container, extend)
     zend_throw_exception_ex(ce_TurboSlim_Exception_ContainerValueNotFoundException, 0, "\"%Z\" does not exist", id);
 }
 
+int turboslim_Container_get(zval* return_value, zval* container, zval* key, int type)
+{
+    container_t* c = container_from_zobj(Z_OBJ_P(container));
+    zval* res      = get_item(c, container, key, type, return_value);
+    if (UNEXPECTED(EG(exception))) {
+        return FAILURE;
+    }
+
+    if (UNEXPECTED(res == &EG(uninitialized_zval))) {
+        ZVAL_UNDEF(return_value);
+    }
+    else if (res != return_value) {
+        ZVAL_COPY(return_value, res);
+    }
+
+    return SUCCESS;
+}
+
 static PHP_METHOD(TurboSlim_Container, get)
 {
     zval* key;
@@ -826,15 +844,7 @@ static PHP_METHOD(TurboSlim_Container, get)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    container_t* c = container_from_zobj(Z_OBJ_P(this_ptr));
-    zval* res      = get_item(c, this_ptr, key, BP_VAR_R, return_value);
-    if (UNEXPECTED(EG(exception))) {
-        return;
-    }
-
-    if (res != return_value) {
-        ZVAL_COPY(return_value, res);
-    }
+    turboslim_Container_get(return_value, this_ptr, key, BP_VAR_R);
 }
 
 /*

@@ -34,4 +34,6 @@ TURBOSLIM_VISIBILITY_HIDDEN zval* turboslim_container_read_property(zval* object
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_container_has_property(zval* object, zval* member, int has_set_exists, void** cache_slot);
 TURBOSLIM_VISIBILITY_HIDDEN int turboslim_container_compare_objects(zval* object1, zval* object2);
 
+TURBOSLIM_VISIBILITY_HIDDEN int turboslim_Container_get(zval* return_value, zval* container, zval* key, int type);
+
 #endif /* TURBOSLIM_CONTAINER_H */

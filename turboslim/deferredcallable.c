@@ -53,6 +53,11 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
     int argn;
     zval callable;
 
+    zend_fcall_info fci;
+    zend_fcall_info_cache fcc;
+
+    memset(&fcc, 0, sizeof(fcc));
+
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(0, -1)
         Z_PARAM_VARIADIC('*', argv, argn)
@@ -61,7 +66,7 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
 
     zval* this_ptr    = get_this(execute_data);
     zend_object* zobj = Z_OBJ_P(this_ptr);
-    if (FAILURE == turboslim_CallableResolverAwareTrait_resolveCallable(&callable, this_ptr, get_callable(zobj))) {
+    if (FAILURE == turboslim_CallableResolverAwareTrait_resolveCallable(&callable, this_ptr, get_callable(zobj), &fcc)) {
         return;
     }
 
@@ -85,25 +90,38 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
 
         zval_ptr_dtor(&callable);
         ZVAL_COPY_VALUE(&callable, &new_callable);
+
+        if (!Z_OBJ_HANDLER_P(&callable, get_closure) || FAILURE == Z_OBJ_HANDLER_P(&callable, get_closure)(&callable, &fcc.calling_scope, &fcc.function_handler, &fcc.object)) {
+            fcc.function_handler = NULL;
+        }
     }
 
-    zend_fcall_info fci;
-    zend_fcall_info_cache fcc;
-    char* error;
-    if (UNEXPECTED(FAILURE == zend_fcall_info_init(&callable, IS_CALLABLE_STRICT, &fci, &fcc, NULL, &error))) {
-        zval_ptr_dtor(&callable);
-        zend_error(E_WARNING, "%s\n", error);
-        efree(error);
-        return;
-    }
-
-    if (UNEXPECTED(error != NULL)) {
-        zend_error(E_DEPRECATED, "%s", error);
-        efree(error);
-        if (UNEXPECTED(EG(exception))) {
+    if (!fcc.function_handler) {
+        char* error;
+        if (UNEXPECTED(FAILURE == zend_fcall_info_init(&callable, 0, &fci, &fcc, NULL, &error))) {
             zval_ptr_dtor(&callable);
+            zend_error(E_WARNING, "%s\n", error);
+            efree(error);
             return;
         }
+
+        if (UNEXPECTED(error != NULL)) {
+            zend_error(E_DEPRECATED, "%s", error);
+            efree(error);
+            if (UNEXPECTED(EG(exception))) {
+                zval_ptr_dtor(&callable);
+                return;
+            }
+        }
+    }
+    else {
+        fci.size          = sizeof(fci);
+        fci.object        = fcc.object;
+        ZVAL_COPY_VALUE(&fci.function_name, &callable);
+        fci.retval        = NULL;
+        fci.param_count   = 0;
+        fci.params        = NULL;
+        fci.no_separation = 1;
     }
 
     zend_fcall_info_argp(&fci, argn, argv);

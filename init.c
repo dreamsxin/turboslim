@@ -377,13 +377,8 @@ static void init_deferred_callable()
     ce_TurboSlim_DeferredCallable = zend_register_internal_class(&ce);
     zend_declare_property_ex(ce_TurboSlim_DeferredCallable, TSKSTR(TKS_callable),  &znull, ZEND_ACC_PRIVATE, NULL);
     zend_declare_property_ex(ce_TurboSlim_DeferredCallable, TSKSTR(TKS_container), &znull, ZEND_ACC_PRIVATE, NULL);
-
-//    ce_TurboSlim_DeferredCallable->create_object = turboslim_deferredcallable_create_object;
-    ce_TurboSlim_DeferredCallable->serialize     = zend_class_serialize_deny;
-    ce_TurboSlim_DeferredCallable->unserialize   = zend_class_unserialize_deny;
-
-//    memcpy(&turboslim_deferredcallable_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-//    turboslim_deferredcallable_handlers.clone_obj = turboslim_deferredcallable_clone_obj;
+    ce_TurboSlim_DeferredCallable->serialize   = zend_class_serialize_deny;
+    ce_TurboSlim_DeferredCallable->unserialize = zend_class_unserialize_deny;
 }
 
 static void init_http_stream()

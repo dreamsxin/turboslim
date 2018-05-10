@@ -4,6 +4,8 @@
 #include <Zend/zend_interfaces.h>
 #include <Zend/zend_operators.h>
 #include <ext/spl/spl_exceptions.h>
+#include "turboslim/callableresolver.h"
+#include "turboslim/container.h"
 #include "turboslim/interfaces.h"
 #include "turboslim/psr11.h"
 #include "persistent.h"
@@ -11,7 +13,7 @@
 
 zend_class_entry* ce_TurboSlim_CallableResolverAwareTrait = NULL;
 
-int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zval* this_ptr, zval* callable)
+int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zval* this_ptr, zval* callable, zend_fcall_info_cache* fcc)
 {
     zend_class_entry* scope = get_executed_scope();
     zval resolver;
@@ -28,10 +30,20 @@ int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zva
     }
 
     ZVAL_STR(&tmp, TSKSTR(TKS_callableResolver));
-    zend_call_method_with_1_params(container, Z_OBJCE_P(container), NULL, "get", &resolver, &tmp);
-    /* Do not run zval_ptr_dtor(&tmp) - str_callableResolver is used elsewhere */
-    if (UNEXPECTED(EG(exception))) {
-        return FAILURE;
+
+    zend_class_entry* container_ce = Z_OBJCE_P(container);
+    if (container_ce == ce_TurboSlim_Container) {
+        if (FAILURE == turboslim_Container_get(&resolver, container, &tmp, BP_VAR_R)) {
+            /* Do not run zval_ptr_dtor(&tmp) - str_callableResolver is used elsewhere */
+            return FAILURE;
+        }
+    }
+    else {
+        zend_call_method_with_1_params(container, container_ce, NULL, "get", &resolver, &tmp);
+        /* Do not run zval_ptr_dtor(&tmp) - str_callableResolver is used elsewhere */
+        if (UNEXPECTED(EG(exception))) {
+            return FAILURE;
+        }
     }
 
     /*
@@ -47,7 +59,13 @@ int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zva
         return FAILURE;
     }
 
-    zend_call_method_with_1_params(&resolver, Z_OBJCE(resolver), NULL, "resolve", return_value, callable);
+    if (Z_OBJCE(resolver) == ce_TurboSlim_CallableResolver) {
+        Turboslim_CallableResolver_resolve(return_value, &resolver, callable, fcc);
+    }
+    else {
+        zend_call_method_with_1_params(&resolver, Z_OBJCE(resolver), NULL, "resolve", return_value, callable);
+    }
+
     zval_ptr_dtor(&resolver);
     return SUCCESS;
 }
@@ -60,6 +78,7 @@ int turboslim_CallableResolverAwareTrait_resolveCallable(zval* return_value, zva
 PHP_METHOD(TurboSlim_CallableResolverAwareTrait, resolveCallable)
 {
     zval* callable;
+    zend_fcall_info_cache fcc;
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -68,7 +87,7 @@ PHP_METHOD(TurboSlim_CallableResolverAwareTrait, resolveCallable)
     /* LCOV_EXCL_BR_STOP */
 
     zval* this_ptr = get_this(execute_data);
-    turboslim_CallableResolverAwareTrait_resolveCallable(return_value, this_ptr, callable);
+    turboslim_CallableResolverAwareTrait_resolveCallable(return_value, this_ptr, callable, &fcc);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_resolveCallable, 0, ZEND_RETURN_VALUE, 1)

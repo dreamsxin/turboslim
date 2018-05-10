@@ -14,6 +14,15 @@ abstract class CallableResolverBenchBase
     protected $x;
     protected $invokable;
 
+    public function __construct()
+    {
+        $this->invokable = new class {
+            public function __invoke()
+            {
+            }
+        };
+    }
+
     /**
      * @Subject
      */
