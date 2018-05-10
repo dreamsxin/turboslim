@@ -297,26 +297,17 @@ static void init_collection()
 
     ce_TurboSlim_Collection->create_object = turboslim_collection_create_object;
     ce_TurboSlim_Collection->get_iterator  = turboslim_collection_get_iterator;
-    ce_TurboSlim_Collection->serialize     = turboslim_collection_serialize;
-    ce_TurboSlim_Collection->unserialize   = turboslim_collection_unserialize;
 
     memcpy(&turboslim_collection_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
     turboslim_collection_handlers.offset          = XtOffsetOf(turboslim_collection_t, std);
-    turboslim_collection_handlers.free_obj        = turboslim_collection_free_obj;
     turboslim_collection_handlers.clone_obj       = turboslim_collection_clone_obj;
-    turboslim_collection_handlers.read_property   = turboslim_collection_read_property;
-    turboslim_collection_handlers.write_property  = turboslim_collection_write_property;
-    turboslim_collection_handlers.has_property    = turboslim_collection_has_property;
-    turboslim_collection_handlers.unset_property  = turboslim_collection_unset_property;
     turboslim_collection_handlers.read_dimension  = turboslim_collection_read_dimension;
     turboslim_collection_handlers.write_dimension = turboslim_collection_write_dimension;
     turboslim_collection_handlers.has_dimension   = turboslim_collection_has_dimension;
     turboslim_collection_handlers.unset_dimension = turboslim_collection_unset_dimension;
     turboslim_collection_handlers.count_elements  = turboslim_collection_count_elements;
-    turboslim_collection_handlers.get_properties  = turboslim_collection_get_properties;
-    turboslim_collection_handlers.compare_objects = turboslim_collection_compare_objects;
 
-    zend_class_implements(ce_TurboSlim_Collection, 2, ce_TurboSlim_Interfaces_CollectionInterface, zend_ce_serializable);
+    zend_class_implements(ce_TurboSlim_Collection, 1, ce_TurboSlim_Interfaces_CollectionInterface);
 
     /* TurboSlim\FastCollection */
     INIT_CLASS_ENTRY(ce, "TurboSlim\\FastCollection", fe_TurboSlim_FastCollection);

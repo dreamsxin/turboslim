@@ -18,13 +18,13 @@ class CollectionTest extends TestCase
         $c->has('something');
     }
 
-    /**
-     * @expectedException \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage unserialize(): Error at offset
-     */
     public function testTurboSlimDataOverwrite()
     {
-        $s = 'C:20:"TurboSlim\\Collection":8:{N;a:0:{}}';
+        $s = 'O:20:"TurboSlim\\Collection":1:{s:7:"' . "\0" . '*' . "\0" . 'data";N;}';
         $c = \unserialize($s);
+
+        $this->assertInstanceOf(\TurboSlim\Collection::class, $c);
+        $this->assertFalse($c->has('something'));
+        $this->assertEquals([], $c->all());
     }
 }

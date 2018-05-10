@@ -42,4 +42,22 @@ class CookiesTest extends TestCase
         $c2->property = 123;
         $this->assertTrue($c1 == $c2);
     }
+
+    public function testUnsetProperty()
+    {
+        $class = new class extends Cookies {
+            public function doUnset()
+            {
+                unset($this->responseCookies);
+            }
+        };
+
+        $class->doUnset();
+        $class->set("name", "value");
+        $expected = [
+            'name=value'
+        ];
+
+        $this->assertEquals($expected, $class->toHeaders());
+    }
 }

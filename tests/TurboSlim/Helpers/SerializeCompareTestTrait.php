@@ -8,6 +8,7 @@ trait SerializeCompareTestTrait
         $s = \serialize($obj);
         $r = \unserialize($s);
         $this->assertTrue($obj == $r);
+        $this->assertTrue($obj !== $r);
 
         $r->someProperty = 'value';
         $s = \serialize($r);

@@ -3,10 +3,12 @@ namespace TurboSlim\Tests;
 
 use TurboSlim\Collection;
 use TurboSlim\Tests\Helpers\CloneCompareTestTrait;
+use TurboSlim\Tests\Helpers\SerializeCompareTestTrait;
 
 class CollectionTest extends \PHPUnit\Framework\TestCase
 {
     use CloneCompareTestTrait;
+    use SerializeCompareTestTrait;
 
     public function testConstruct()
     {
@@ -103,5 +105,11 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
     {
         $orig = new Collection(['a' => 'b']);
         $this->checkCloneCompare($orig);
+    }
+
+    public function testSerializeCompare()
+    {
+        $obj = new Collection(['a' => 'b']);
+        $this->checkSerializeCompare($obj);
     }
 }
