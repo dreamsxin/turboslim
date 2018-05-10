@@ -200,6 +200,7 @@ zval* turboslim_http_stream_read_property(zval* object, zval* member, int type, 
             }
         }
         else if (is_my_property(x, m, rv)) {
+            /* is_my_property returns a reference to our zval OR non-refcounted zval, no need to clean up */
             if (type != BP_VAR_IS) {
                 zend_throw_error(NULL, "Cannot access protected property %s::$%s", ZSTR_VAL(ce_TurboSlim_Http_Stream->name), ZSTR_VAL(m));
             }
