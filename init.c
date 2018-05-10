@@ -462,14 +462,7 @@ static void init_http_cookies()
     zend_declare_property_null(ce_TurboSlim_Http_Cookies, ZEND_STRL("defaults"),        ZEND_ACC_PROTECTED);
 
     memcpy(&turboslim_http_cookies_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    turboslim_http_cookies_handlers.offset          = XtOffsetOf(turboslim_http_cookies_t, std);
-    turboslim_http_cookies_handlers.free_obj        = turboslim_http_cookies_free_obj;
-    turboslim_http_cookies_handlers.clone_obj       = turboslim_http_cookies_clone_obj;
-    turboslim_http_cookies_handlers.read_property   = turboslim_http_stream_cookies_read_property;
-    turboslim_http_cookies_handlers.has_property    = turboslim_http_cookies_has_property;
-    turboslim_http_cookies_handlers.get_properties  = turboslim_http_cookies_get_properties;
-    turboslim_http_cookies_handlers.get_gc          = turboslim_http_cookies_get_gc;
-    turboslim_http_cookies_handlers.compare_objects = turboslim_http_cookies_compare_objects;
+    turboslim_http_cookies_handlers.clone_obj = turboslim_http_cookies_clone_obj;
 }
 
 static void init_http_environment()
