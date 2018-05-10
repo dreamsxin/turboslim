@@ -272,18 +272,10 @@ static void init_callable_resolver()
     ce_TurboSlim_CallableResolver->ce_flags |= ZEND_ACC_FINAL;
     zend_class_implements(ce_TurboSlim_CallableResolver, 1, ce_TurboSlim_Interfaces_CallableResolverInterface);
     zend_declare_class_constant_stringl(ce_TurboSlim_CallableResolver, ZEND_STRL("CALLABLE_PATTERN"), ZSTR_VAL(str_callable_pattern), ZSTR_LEN(str_callable_pattern));
+    zend_declare_property_ex(ce_TurboSlim_CallableResolver, TSKSTR(TKS_container), &znull, ZEND_ACC_PRIVATE, NULL);
 
-    ce_TurboSlim_CallableResolver->create_object = turboslim_callableresolver_create_object;
-    ce_TurboSlim_CallableResolver->serialize     = zend_class_serialize_deny;
-    ce_TurboSlim_CallableResolver->unserialize   = zend_class_unserialize_deny;
-
-    memcpy(&turboslim_callableresolver_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-    turboslim_callableresolver_handlers.offset          = XtOffsetOf(turboslim_callableresolver_t, std);
-    turboslim_callableresolver_handlers.free_obj        = turboslim_callableresolver_free_obj;
-    turboslim_callableresolver_handlers.clone_obj       = turboslim_callableresolver_clone_obj;
-    turboslim_callableresolver_handlers.compare_objects = turboslim_callableresolver_compare_objects;
-    turboslim_callableresolver_handlers.get_properties  = turboslim_callableresolver_get_properties;
-    turboslim_callableresolver_handlers.get_gc          = turboslim_callableresolver_get_gc;
+    ce_TurboSlim_CallableResolver->serialize   = zend_class_serialize_deny;
+    ce_TurboSlim_CallableResolver->unserialize = zend_class_unserialize_deny;
 }
 
 static void init_collection()

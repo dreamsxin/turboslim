@@ -14,85 +14,10 @@
 #include "utils.h"
 
 zend_class_entry* ce_TurboSlim_CallableResolver = NULL;
-zend_object_handlers turboslim_callableresolver_handlers;
 
-typedef turboslim_callableresolver_t callable_resolver_t;
-
-static inline callable_resolver_t* cr_from_zobj(const zend_object* obj)
+static zval* get_container(zend_object* zobj)
 {
-    return (callable_resolver_t*)((char*)(obj) - XtOffsetOf(turboslim_callableresolver_t, std));
-}
-
-zend_object* turboslim_callableresolver_create_object(zend_class_entry* ce)
-{
-    callable_resolver_t* v = ecalloc(1, sizeof(callable_resolver_t) + zend_object_properties_size(ce));
-
-    zend_object_std_init(&v->std, ce);
-    object_properties_init(&v->std, ce);
-    v->std.handlers = &turboslim_callableresolver_handlers;
-
-    ZVAL_NULL(&v->container);
-    return &v->std;
-}
-
-void turboslim_callableresolver_free_obj(zend_object* obj)
-{
-    callable_resolver_t* v = cr_from_zobj(obj);
-
-    zend_object_std_dtor(&v->std);
-    zval_ptr_dtor(&v->container);
-}
-
-zend_object* turboslim_callableresolver_clone_obj(zval* obj)
-{
-    zend_object* old_object = Z_OBJ_P(obj);
-    zend_object* new_object = turboslim_callableresolver_create_object(old_object->ce);
-
-    callable_resolver_t* mine   = cr_from_zobj(old_object);
-    callable_resolver_t* theirs = cr_from_zobj(new_object);
-
-    ZVAL_COPY(&theirs->container, &mine->container);
-
-    zend_objects_clone_members(new_object, old_object);
-    return new_object;
-}
-
-int turboslim_callableresolver_compare_objects(zval* object1, zval* object2)
-{
-    zend_object* zobj1 = Z_OBJ_P(object1);
-    zend_object* zobj2 = Z_OBJ_P(object2);
-
-    if (zobj1->ce != zobj2->ce) {  /* LCOV_EXCL_BR_LINE */
-        return 1;                  /* LCOV_EXCL_LINE - this cannot be tested without dirty hacks */
-    }
-
-    callable_resolver_t* v1 = cr_from_zobj(zobj1);
-    callable_resolver_t* v2 = cr_from_zobj(zobj2);
-
-    zval res;
-    if (FAILURE == compare_function(&res, &v1->container, &v2->container) || Z_LVAL(res) != 0) {
-        return 1;
-    }
-
-    return zend_get_std_object_handlers()->compare_objects(object1, object2);
-}
-
-HashTable* turboslim_callableresolver_get_properties(zval* object)
-{
-    callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(object));
-
-    HashTable* res = zend_std_get_properties(object);
-    Z_ADDREF(v->container);
-    zend_hash_update(res, TSKSTR(TKS_container), &v->container);
-    return res;
-}
-
-HashTable* turboslim_callableresolver_get_gc(zval* object, zval** table, int* n)
-{
-    callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(object));
-    *table = &v->container;
-    *n     = 1;
-    return zend_std_get_properties(object);
+    return OBJ_PROP_NUM(zobj, 0);
 }
 
 /*
@@ -102,7 +27,7 @@ static PHP_METHOD(TurboSlim_CallableResolver, __construct)
 {
     zval* container;
     zval* this_ptr = get_this(execute_data);
-    callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(this_ptr));
+    zval* ctr      = get_container(Z_OBJ_P(this_ptr));
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -110,7 +35,7 @@ static PHP_METHOD(TurboSlim_CallableResolver, __construct)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    ZVAL_COPY(&v->container, container);
+    ZVAL_COPY(ctr, container);
 }
 
 /**
@@ -207,7 +132,7 @@ static void ensure_is_callable(zval* callable, zend_fcall_info_cache* fcc)
  * @param obj
  * @param method
  */
-static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* obj, zval* method, zend_fcall_info_cache* fcc)
+static void resolve_callable(zval* return_value, zval* container, zval* obj, zval* method, zend_fcall_info_cache* fcc)
 {
     zval rv;
 
@@ -216,10 +141,10 @@ static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* o
     assert(!method || Z_TYPE_P(method) == IS_STRING);
     /* LCOV_EXCL_BR_STOP */
 
-    zend_class_entry* container_ce = Z_OBJCE(c->container);
+    zend_class_entry* container_ce = Z_OBJCE_P(container);
     if (container_ce == ce_TurboSlim_Container) {
         /* Fast path - container is TurboSlim\Container */
-        if (FAILURE == turboslim_Container_get(&rv, &c->container, obj, BP_VAR_IS)) {
+        if (FAILURE == turboslim_Container_get(&rv, container, obj, BP_VAR_IS)) {
             return;
         }
 
@@ -236,7 +161,7 @@ static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* o
          *      return [$this->container->get($class), $method];
          *  }
          */
-        zend_call_method_with_1_params(&c->container, container_ce, NULL, "has", &rv, obj);
+        zend_call_method_with_1_params(container, container_ce, NULL, "has", &rv, obj);
         if (UNEXPECTED(EG(exception))) { /* has() should not throw, but anyway */
             return;
         }
@@ -246,7 +171,7 @@ static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* o
         maybe_destroy_zval(&rv);
 
         if (has) {
-            zend_call_method_with_1_params(&c->container, Z_OBJCE(c->container), NULL, "get", &rv, obj);
+            zend_call_method_with_1_params(container, container_ce, NULL, "get", &rv, obj);
             if (UNEXPECTED(EG(exception))) {
                 return;
             }
@@ -277,14 +202,14 @@ static void resolve_callable(zval* return_value, callable_resolver_t* c, zval* o
     }
 
     if (ctor) {
-        zend_call_method(&rv, Z_OBJCE(rv), &ctor, ZSTR_VAL(ctor->common.function_name), ZSTR_LEN(ctor->common.function_name), NULL, 1, &c->container, NULL);
+        zend_call_method(&rv, Z_OBJCE(rv), &ctor, ZSTR_VAL(ctor->common.function_name), ZSTR_LEN(ctor->common.function_name), NULL, 1, container, NULL);
     }
 
     make_callable(return_value, &rv, method); /* make_callable assumes rv is a temporary variable, no need to destroy it */
     ensure_is_callable(return_value, fcc);    /* Will kill return_value if not */
 }
 
-static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* callable, zend_fcall_info_cache* fcc)
+static int is_slim_callable(zval* return_value, zval* container, zval* callable, zend_fcall_info_cache* fcc)
 {
     pcre_cache_entry* pce = pcre_get_compiled_regex_cache(str_callable_pattern);
     int retval = 0;
@@ -307,7 +232,7 @@ static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* ca
 #endif
 
         if (zend_is_true(&rv) && Z_TYPE(subpats) == IS_ARRAY) {
-            resolve_callable(return_value, c, zend_hash_index_find(Z_ARRVAL(subpats), 1), zend_hash_index_find(Z_ARRVAL(subpats), 2), fcc);
+            resolve_callable(return_value, container, zend_hash_index_find(Z_ARRVAL(subpats), 1), zend_hash_index_find(Z_ARRVAL(subpats), 2), fcc);
             retval = 1;
         }
 
@@ -319,7 +244,11 @@ static int is_slim_callable(zval* return_value, callable_resolver_t* c, zval* ca
 
 void Turboslim_CallableResolver_resolve(zval* return_value, zval* this_ptr, zval* callable, zend_fcall_info_cache* fcc)
 {
-    callable_resolver_t* v = cr_from_zobj(Z_OBJ_P(this_ptr));
+    zval* container = get_container(Z_OBJ_P(this_ptr));
+    if (UNEXPECTED(Z_TYPE_P(container) != IS_OBJECT)) {
+        zend_error(E_ERROR, "TurboSlim\\CallableResolver::$container is no longer an object");
+        return;
+    }
 
     if (zend_is_callable_ex(callable, NULL, 0, NULL, fcc, NULL)) {
         RETURN_ZVAL(callable, 1, 0);
@@ -336,11 +265,11 @@ void Turboslim_CallableResolver_resolve(zval* return_value, zval* this_ptr, zval
     }
 
     /* check for slim callable as "class:method" */
-    if (is_slim_callable(return_value, v, callable, fcc)) {
+    if (is_slim_callable(return_value, container, callable, fcc)) {
         return;
     }
 
-    resolve_callable(return_value, v, callable, NULL, fcc);
+    resolve_callable(return_value, container, callable, NULL, fcc);
 }
 
 /*

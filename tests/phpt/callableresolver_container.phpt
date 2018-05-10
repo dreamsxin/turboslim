@@ -40,8 +40,8 @@ object(class@anonymous)#%d (0) {
 }
 NULL
 object(TurboSlim\CallableResolver)#%d (1) {
-  ["container"]=>
-  object(class@anonymous)#%d (0) {
-  }
+  ["container":"TurboSlim\CallableResolver":private]=>
+  NULL
 }
-123
+
+Fatal error: TurboSlim\CallableResolver::$container is no longer an object in %s on line %d
