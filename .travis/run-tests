@@ -24,6 +24,37 @@
 		export TESTS
 		shift
 		make test "$@"
+	elif [ "x$1" = "xweb" ]; then
+		$(phpenv which php) -S 127.0.0.1:9999 -t ./tests > /dev/null 2>&1 &
+		pid=$!
+
+		echo "********** Iteration 1 **********"
+		GET http://127.0.0.1:9999/web/
+		echo
+		echo
+		echo
+		echo
+		echo
+		echo "********** Iteration 2 **********"
+		GET http://127.0.0.1:9999/web/
+		kill $pid
+	elif [ "x$1" = "xwebvg" ]; then
+		valgrind -q --track-origins=yes --num-callers=50 $(phpenv which php) -S 127.0.0.1:9999 -t ./tests > /dev/null 2> stderr.log &
+		sleep 5
+		pid=$!
+
+		echo "********** Iteration 1 **********"
+		GET http://127.0.0.1:9999/web/?debug=1
+		echo
+		echo
+		echo
+		echo
+		echo
+		echo "********** Iteration 2 **********"
+		GET http://127.0.0.1:9999/web/
+		kill $pid
+		cat stderr.log
+		rm stderr.log
 	else
 		ONECOVERAGE=1
 		export ONECOVERAGE

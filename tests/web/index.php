@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
 header('Content-Type: text/plain; charset=utf-8');
 ini_set('implicit_flush', true);
@@ -9,7 +9,10 @@ while (ob_get_level()) {
     ob_end_flush();
 }
 
-$argv = ['index.php', '--configuration', '../phpunit.xml', '--colors=always'];
+$argv = ['index.php', '--configuration', '../../phpunit.xml', '--colors=always'];
+if (!empty($_GET['debug'])) {
+    $argv[] = '--debug';
+}
 
 $_SERVER['argc'] = count($argv);
 $_SERVER['argv'] = $argv;
