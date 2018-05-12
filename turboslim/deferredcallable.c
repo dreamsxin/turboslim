@@ -133,6 +133,9 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
         fci.param_count   = 0;
         fci.params        = NULL;
         fci.no_separation = 1;
+#if PHP_VERSION_ID < 70100
+        fci.symbol_table  = NULL;
+#endif
     }
 
     zend_fcall_info_argp(&fci, argn, argv);

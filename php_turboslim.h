@@ -60,4 +60,8 @@ TURBOSLIM_VISIBILITY_HIDDEN ZEND_EXTERN_MODULE_GLOBALS(turboslim)
 #   define HT_IS_PACKED(x) 0
 #endif
 
+#ifndef HT_IS_WITHOUT_HOLES
+#   define HT_IS_WITHOUT_HOLES(x) 0
+#endif
+
 #endif /* PHP_TURBOSLIM_H */
