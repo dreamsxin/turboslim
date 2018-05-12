@@ -2,7 +2,7 @@
 
 void turboslim_array_values(zval* return_value, zval* arr)
 {
-    assert(Z_TYPE_P(arr) == IS_NULL);
+    assert(Z_TYPE_P(arr) == IS_ARRAY);
 
     zend_array* a = Z_ARRVAL_P(arr);
     size_t cnt    = zend_hash_num_elements(a);

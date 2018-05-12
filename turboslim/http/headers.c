@@ -214,6 +214,7 @@ static ZEND_METHOD(TurboSlim_Http_Headers, createFromEnvironment)
     }
 
     zend_iterator_dtor(it);
+    zval_ptr_dtor(&arr);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, determineAuthorization)
@@ -264,7 +265,7 @@ static void set(zval* this_ptr, zend_string* key, zval* value)
 
     z = zend_hash_add_new(Z_ARRVAL(v), TSKSTR(TKS_value), value);
     if (z) {
-        Z_ADDREF_P(z);
+        Z_TRY_ADDREF_P(z);
     }
 
     ZVAL_STR(&k, key);
