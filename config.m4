@@ -5,6 +5,7 @@ if test "$PHP_TURBOSLIM" = "yes"; then
 	turboslim_src="
 main.c
 init.c
+functions.c
 persistent.c
 turboslim/callableresolver.c
 turboslim/collection.c
@@ -20,6 +21,7 @@ turboslim/exception/methodnotallowedexception.c
 turboslim/http/body.c
 turboslim/http/cookies.c
 turboslim/http/environment.c
+turboslim/http/headers.c
 turboslim/http/requestbody.c
 turboslim/http/stream.c
 turboslim/internal/callablewrapper.c

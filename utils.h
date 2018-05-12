@@ -114,7 +114,7 @@ static inline int array_zval_offset_exists(HashTable* h, zval* key)
     }
 }
 
-static inline int array_zval_offset_unset(HashTable* h, zval* key)
+TURBOSLIM_ATTR_NONNULL static inline int array_zval_offset_unset(HashTable* h, zval* key)
 {
     switch (Z_TYPE_P(key)) {
         case IS_STRING:
@@ -145,14 +145,14 @@ static inline int array_zval_offset_unset(HashTable* h, zval* key)
     }
 }
 
-static inline void maybe_destroy_zval(zval* z)
+TURBOSLIM_ATTR_NONNULL static inline void maybe_destroy_zval(zval* z)
 {
     if (UNEXPECTED(Z_REFCOUNTED_P(z))) {
-        i_zval_ptr_dtor(z ZEND_FILE_LINE_CC);
+        zval_ptr_dtor(z);
     }
 }
 
-static inline zval* get_this(zend_execute_data* execute_data)
+TURBOSLIM_ATTR_NONNULL static inline zval* get_this(zend_execute_data* execute_data)
 {
     zval* this_ptr = getThis();
     if (UNEXPECTED(this_ptr == NULL)) {         /* LCOV_EXCL_BR_LINE - this cannot happen without hacks */

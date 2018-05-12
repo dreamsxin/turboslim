@@ -21,6 +21,7 @@
 #include "turboslim/http/body.h"
 #include "turboslim/http/cookies.h"
 #include "turboslim/http/environment.h"
+#include "turboslim/http/headers.h"
 #include "turboslim/http/requestbody.h"
 #include "turboslim/http/stream.h"
 #include "turboslim/interfaces.h"
@@ -442,8 +443,31 @@ static void init_http_environment()
     zend_class_entry ce;
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Environment", fe_TurboSlim_Http_Environment);
+    ce.get_iterator = ce_TurboSlim_Collection->get_iterator;
     ce_TurboSlim_Http_Environment = zend_register_internal_class_ex(&ce, ce_TurboSlim_Collection);
     zend_class_implements(ce_TurboSlim_Http_Environment, 1, ce_TurboSlim_Interfaces_Http_EnvironmentInterface);
+}
+
+static void init_http_headers()
+{
+    zend_class_entry ce;
+
+    INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Headers", fe_TurboSlim_Http_Headers);
+    ce_TurboSlim_Http_Headers = zend_register_internal_class_ex(&ce, ce_TurboSlim_Collection);
+
+//    zval arr;
+//    zval z;
+//    ZVAL_NEW_PERSISTENT_ARR(&arr);
+//    zend_hash_init(Z_ARRVAL(arr), 8, NULL, ZVAL_PTR_DTOR, 1);
+//    ZVAL_LONG(&z, 1);
+//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_TYPE"), &z ZEND_FILE_LINE_CC);
+//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_LENGTH"), &z ZEND_FILE_LINE_CC);
+//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_USER"), &z ZEND_FILE_LINE_CC);
+//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_PW"), &z ZEND_FILE_LINE_CC);
+//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_DIGEST"), &z ZEND_FILE_LINE_CC);
+//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("AUTH_TYPE"), &z ZEND_FILE_LINE_CC);
+
+    zend_declare_property_null(ce_TurboSlim_Http_Headers, ZEND_STRL("special"), ZEND_ACC_PUBLIC | ZEND_ACC_STATIC);
 }
 
 int init_module()
@@ -466,6 +490,7 @@ int init_module()
     init_http_stream();
     init_http_cookies();
     init_http_environment();
+    init_http_headers();
 
     return SUCCESS;
 }

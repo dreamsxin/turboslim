@@ -268,7 +268,26 @@ static PHP_METHOD(TurboSlim_Collection, __construct)
     /* LCOV_EXCL_BR_STOP */
 
     if (items) {
-        zend_hash_copy(Z_ARRVAL_P(data), items, zval_add_ref);
+        if (collection_from_zobj(zobj)->opt.fast_writedim) {
+            zend_hash_copy(Z_ARRVAL_P(data), items, zval_add_ref);
+        }
+        else {
+            zend_ulong h;
+            zend_string* key;
+            zval* v;
+            zend_function* f = NULL;
+            ZEND_HASH_FOREACH_KEY_VAL(items, h, key, v) {
+                zval k;
+                if (key) {
+                    ZVAL_STR(&k, key);
+                }
+                else {
+                    ZVAL_LONG(&k, h);
+                }
+
+                zend_call_method(this_ptr, Z_OBJCE_P(this_ptr), &f, ZEND_STRL("set"), NULL, 2, &k, v);
+            } ZEND_HASH_FOREACH_END();
+        }
     }
 }
 
@@ -601,3 +620,66 @@ const zend_function_entry fe_TurboSlim_Collection[] = {
 
     PHP_FE_END
 };
+
+void turboslim_Collection_create(zval* return_value, zend_class_entry* ce, zval* items)
+{
+    assert(instanceof_function_ex(ce, ce_TurboSlim_Interfaces_CollectionInterface, 1));
+    object_init_ex(return_value, ce);
+
+    zend_object* zobj = Z_OBJ_P(return_value);
+    zval* data        = get_data(zobj);
+
+    if (items && Z_TYPE_P(items) == IS_ARRAY) {
+        zend_hash_copy(Z_ARRVAL_P(data), Z_ARRVAL_P(items), zval_add_ref);
+    }
+}
+
+void turboslim_Collection_get(zval* return_value, zval* collection, zval* key)
+{
+    assert(Z_TYPE_P(collection) == IS_OBJECT);
+    assert(instanceof_function_ex(Z_OBJCE_P(collection), ce_TurboSlim_Interfaces_CollectionInterface, 1));
+
+    zend_object* zobj = Z_OBJ_P(collection);
+    zval* data        = get_data(zobj);
+
+    zval* tmp = array_zval_offset_get(Z_ARRVAL_P(data), key);
+    if (tmp) {
+        ZVAL_COPY(return_value, tmp);
+    }
+    else {
+        ZVAL_UNDEF(return_value);
+    }
+}
+
+void turboslim_Collection_set(zval* collection, zval* key, zval* value)
+{
+    assert(Z_TYPE_P(collection) == IS_OBJECT);
+    assert(instanceof_function_ex(Z_OBJCE_P(collection), ce_TurboSlim_Interfaces_CollectionInterface, 1));
+
+    zend_object* zobj = Z_OBJ_P(collection);
+    zval* data        = get_data(zobj);
+
+    SEPARATE_ARRAY(data);
+    /* if Z_TYPE_P(key) = IS_NULL, this will use an empty key rather then append */
+    array_set_zval_key(Z_ARRVAL_P(data), key, value);
+}
+
+void turboslim_Collection_remove(zval* collection, zval* key)
+{
+    assert(Z_TYPE_P(collection) == IS_OBJECT);
+    assert(instanceof_function_ex(Z_OBJCE_P(collection), ce_TurboSlim_Interfaces_CollectionInterface, 1));
+
+    zend_object* zobj = Z_OBJ_P(collection);
+    zval* data        = get_data(zobj);
+
+    SEPARATE_ARRAY(data);
+    array_zval_offset_unset(Z_ARRVAL_P(data), key);
+}
+
+zval* turboslim_Collection_all(zval* collection)
+{
+    assert(Z_TYPE_P(collection) == IS_OBJECT);
+    assert(instanceof_function_ex(Z_OBJCE_P(collection), ce_TurboSlim_Interfaces_CollectionInterface, 1));
+
+    return get_data(Z_OBJ_P(collection));
+}

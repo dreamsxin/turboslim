@@ -10,8 +10,10 @@ TURBOSLIM_VISIBILITY_HIDDEN int deinit_persistent_data();
 TURBOSLIM_VISIBILITY_HIDDEN extern zend_string** turboslim_known_strings;
 
 #define TURBOSLIM_KNOWN_STRINGS(_) \
+    _(TKS_HTTP_AUTHORIZATION,                   "HTTP_AUTHORIZATION")                   \
     _(TKS_addContentLengthHeader,               "addContentLengthHeader")               \
     _(TKS_allowedMethods,                       "allowedMethod")                        \
+    _(TKS_authorization,                        "authorization")                        \
     _(TKS_callable,                             "callable")                             \
     _(TKS_callableResolver,                     "callableResolver")                     \
     _(TKS_container,                            "container")                            \
@@ -23,6 +25,7 @@ TURBOSLIM_VISIBILITY_HIDDEN extern zend_string** turboslim_known_strings;
     _(TKS_hostonly,                             "hostonly")                             \
     _(TKS_httpVersion,                          "httpVersion")                          \
     _(TKS_httponly,                             "httponly")                             \
+    _(TKS_originalKey,                          "originalKey")                          \
     _(TKS_outputBuffering,                      "outputBuffering")                      \
     _(TKS_path,                                 "path")                                 \
     _(TKS_request,                              "request")                              \
