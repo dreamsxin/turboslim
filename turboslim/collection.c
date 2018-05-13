@@ -30,8 +30,7 @@ static inline zval* get_data(zend_object* zobj)
             array_init(z);
         }
         else {
-            SEPARATE_ZVAL(z);
-            convert_to_array_ex(z);
+            convert_to_array(z);
         }
     }
 
