@@ -215,8 +215,8 @@ static zval* get_item(container_t* c, zval* this_ptr, zval* key, int type, zval*
         z = array_zval_offset_get(&c->items, key);
     }
     else {
-        z = NULL;
-        key = &znull;
+        z   = NULL;
+        key = &EG(uninitialized_zval);
     }
 
     if (!z) {
@@ -354,7 +354,7 @@ void turboslim_container_write_dimension(zval* object, zval* offset, zval* value
 
     if (v->fast_writedim) {
         if (UNEXPECTED(offset == NULL)) {
-            offset = &znull;
+            offset = &EG(uninitialized_zval);
         }
 
         set_item(v, offset, value);

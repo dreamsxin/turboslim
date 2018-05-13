@@ -267,6 +267,8 @@ static void init_internal_classes()
 static void init_callable_resolver()
 {
     zend_class_entry ce;
+    zval znull;
+    ZVAL_NULL(&znull);
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\CallableResolver", fe_TurboSlim_CallableResolver);
     ce_TurboSlim_CallableResolver = zend_register_internal_class(&ce);
@@ -282,6 +284,8 @@ static void init_callable_resolver()
 static void init_collection()
 {
     zend_class_entry ce;
+    zval znull;
+    ZVAL_NULL(&znull);
 
     /* TurboSlim\Collection */
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Collection", fe_TurboSlim_Collection);
@@ -365,6 +369,8 @@ static void init_container()
 static void init_deferred_callable()
 {
     zend_class_entry ce;
+    zval znull;
+    ZVAL_NULL(&znull);
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\DeferredCallable", fe_TurboSlim_DeferredCallable);
     ce_TurboSlim_DeferredCallable = zend_register_internal_class(&ce);
@@ -454,20 +460,7 @@ static void init_http_headers()
 
     INIT_CLASS_ENTRY(ce, "TurboSlim\\Http\\Headers", fe_TurboSlim_Http_Headers);
     ce_TurboSlim_Http_Headers = zend_register_internal_class_ex(&ce, ce_TurboSlim_Collection);
-
-//    zval arr;
-//    zval z;
-//    ZVAL_NEW_PERSISTENT_ARR(&arr);
-//    zend_hash_init(Z_ARRVAL(arr), 8, NULL, ZVAL_PTR_DTOR, 1);
-//    ZVAL_LONG(&z, 1);
-//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_TYPE"), &z ZEND_FILE_LINE_CC);
-//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_LENGTH"), &z ZEND_FILE_LINE_CC);
-//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_USER"), &z ZEND_FILE_LINE_CC);
-//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_PW"), &z ZEND_FILE_LINE_CC);
-//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_DIGEST"), &z ZEND_FILE_LINE_CC);
-//    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("AUTH_TYPE"), &z ZEND_FILE_LINE_CC);
-
-    zend_declare_property_null(ce_TurboSlim_Http_Headers, ZEND_STRL("special"), ZEND_ACC_PUBLIC | ZEND_ACC_STATIC);
+    zend_declare_property_null(ce_TurboSlim_Http_Headers, ZEND_STRL("special"), ZEND_ACC_PROTECTED | ZEND_ACC_STATIC);
 }
 
 int init_module()
@@ -491,6 +484,24 @@ int init_module()
     init_http_cookies();
     init_http_environment();
     init_http_headers();
+
+    return SUCCESS;
+}
+
+int init_request()
+{
+    zval arr;
+    zval z;
+    array_init_size(&arr, 8);
+    ZVAL_LONG(&z, 1);
+    Z_SET_REFCOUNT(arr, 0);
+    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_TYPE"), &z ZEND_FILE_LINE_CC);
+    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_LENGTH"), &z ZEND_FILE_LINE_CC);
+    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_USER"), &z ZEND_FILE_LINE_CC);
+    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_PW"), &z ZEND_FILE_LINE_CC);
+    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_DIGEST"), &z ZEND_FILE_LINE_CC);
+    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("AUTH_TYPE"), &z ZEND_FILE_LINE_CC);
+    zend_update_static_property(ce_TurboSlim_Http_Headers, ZEND_STRL("special"), &arr);
 
     return SUCCESS;
 }

@@ -10,6 +10,7 @@ typedef struct turboslim_collection {
         unsigned int fast_hasdim:1;
         unsigned int fast_unsetdim:1;
         unsigned int fast_count:1;
+        unsigned int fast_get:1;
     } opt;
     zend_object std;
 } turboslim_collection_t;

@@ -4,10 +4,9 @@
 
 zend_string** turboslim_known_strings = NULL;
 
-zend_string* str_callable_pattern       = NULL;
-zend_string* str_magic_function         = NULL;
+zend_string* str_callable_pattern     = NULL;
+zend_string* str_magic_function       = NULL;
 
-zval znull;
 zval zundef;
 zval zemptyarr;
 zval container_default_settings;
@@ -58,10 +57,9 @@ int init_persistent_data()
 {
     init_strings(known_strings, (sizeof(known_strings) / sizeof(known_strings[0])) - 1);
 
-    str_callable_pattern       = zend_string_init(ZEND_STRL("!^([^\\:]+)\\:([a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*)$!"), 1);
-    str_magic_function         = zend_string_init(ZEND_STRL("Magic Function"), 1);
+    str_callable_pattern = zend_string_init(ZEND_STRL("!^([^\\:]+)\\:([a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*)$!"), 1);
+    str_magic_function   = zend_string_init(ZEND_STRL("Magic Function"), 1);
 
-    ZVAL_NULL(&znull);
     ZVAL_UNDEF(&zundef);
 
     ZVAL_NEW_PERSISTENT_ARR(&zemptyarr);

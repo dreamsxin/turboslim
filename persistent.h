@@ -54,7 +54,6 @@ static inline zend_string* TSKSTR(turboslim_known_string_id idx)
 TURBOSLIM_VISIBILITY_HIDDEN extern zend_string* str_callable_pattern;
 TURBOSLIM_VISIBILITY_HIDDEN extern zend_string* str_magic_function;
 
-TURBOSLIM_VISIBILITY_HIDDEN extern zval znull;
 TURBOSLIM_VISIBILITY_HIDDEN extern zval zundef;
 TURBOSLIM_VISIBILITY_HIDDEN extern zval zemptyarr;
 

@@ -67,7 +67,7 @@ zval* turboslim_fastcollection_read_dimension(zval* object, zval* offset, int ty
     }
     else {
         z      = NULL;
-        offset = &znull;
+        offset = &EG(uninitialized_zval);
     }
 
     if (!z) {

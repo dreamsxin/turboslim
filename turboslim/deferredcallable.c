@@ -75,7 +75,7 @@ static PHP_METHOD(TurboSlim_DeferredCallable, __invoke)
         zval new_callable;
         zval* container = get_container(zobj);
         if (Z_TYPE_P(container) != IS_OBJECT) {
-            container = &znull;
+            container = &EG(uninitialized_zval);
         }
 
         if (!zend_is_identical(container, zend_get_closure_this_ptr(&callable))) {

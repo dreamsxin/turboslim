@@ -5,6 +5,7 @@
 #include <ext/standard/php_string.h>
 #include "turboslim/collection.h"
 #include "turboslim/interfaces.h"
+#include "utils/array.h"
 #include "functions.h"
 #include "persistent.h"
 #include "utils.h"
@@ -22,15 +23,13 @@ TURBOSLIM_ATTR_NONNULL static void array_lowercase_keys(zval* restrict return_va
     array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL_P(arr)));
     ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(arr), num_key, string_key, entry) {
         if (!string_key) {
-            entry = zend_hash_index_add_new(Z_ARRVAL_P(return_value), num_key, entry);
+            array_index_add_new(Z_ARRVAL_P(return_value), num_key, entry);
         }
         else {
             zend_string* new_key = php_string_tolower(string_key);
-            entry = zend_hash_update(Z_ARRVAL_P(return_value), new_key, entry);
+            array_key_update(Z_ARRVAL_P(return_value), new_key, entry);
             zend_string_release(new_key);
         }
-
-        Z_TRY_ADDREF_P(entry);
     } ZEND_HASH_FOREACH_END();
 }
 
@@ -154,34 +153,20 @@ static ZEND_METHOD(TurboSlim_Http_Headers, createFromEnvironment)
 {
     zval* environment;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_OBJECT_OF_CLASS(environment, ce_TurboSlim_Interfaces_CollectionInterface)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     determineAuthorization(environment);
     if (UNEXPECTED(EG(exception))) {
         return;
     }
 
-    zval arr;
-    {
-        zval z;
-        ZVAL_NEW_ARR(&arr);
-        zend_hash_init(Z_ARRVAL(arr), 8, NULL, ZVAL_PTR_DTOR, 0);
-        ZVAL_LONG(&z, 1);
-        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_TYPE"), &z ZEND_FILE_LINE_CC);
-        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_LENGTH"), &z ZEND_FILE_LINE_CC);
-        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_USER"), &z ZEND_FILE_LINE_CC);
-        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_PW"), &z ZEND_FILE_LINE_CC);
-        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_DIGEST"), &z ZEND_FILE_LINE_CC);
-        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("AUTH_TYPE"), &z ZEND_FILE_LINE_CC);
-    }
-
-
     zval* special = zend_read_static_property(ce_TurboSlim_Http_Headers, ZEND_STRL("special"), 1);
     if (UNEXPECTED(!special || Z_TYPE_P(special) != IS_ARRAY)) {
         special = &zemptyarr;
-        special = &arr;
     }
 
     turboslim_Collection_create(return_value, ce_TurboSlim_Http_Headers, NULL);
@@ -224,16 +209,17 @@ static ZEND_METHOD(TurboSlim_Http_Headers, createFromEnvironment)
     }
 
     zend_iterator_dtor(it);
-    zval_ptr_dtor(&arr);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, determineAuthorization)
 {
     zval* environment;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_OBJECT_OF_CLASS(environment, ce_TurboSlim_Interfaces_CollectionInterface)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     determineAuthorization(environment);
     RETURN_ZVAL(environment, 1, 0);
@@ -241,6 +227,11 @@ static ZEND_METHOD(TurboSlim_Http_Headers, determineAuthorization)
 
 static ZEND_METHOD(TurboSlim_Http_Headers, all)
 {
+    /* LCOV_EXCL_BR_START */
+    ZEND_PARSE_PARAMETERS_START(0, 0)
+    ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
+
     zval* this_ptr = get_this(execute_data);
     zval* all      = turboslim_Collection_all(this_ptr);
 
@@ -253,7 +244,7 @@ static ZEND_METHOD(TurboSlim_Http_Headers, all)
             zval* value    = zend_hash_find(Z_ARRVAL_P(entry), TSKSTR(TKS_value));
 
             if (orig_key && value && Z_TYPE_P(orig_key) == IS_STRING) {
-                array_update(Z_ARRVAL_P(return_value), Z_STR_P(orig_key), value);
+                array_key_update(Z_ARRVAL_P(return_value), Z_STR_P(orig_key), value);
             }
         }
     } ZEND_HASH_FOREACH_END();
@@ -276,8 +267,8 @@ static void set(zval* this_ptr, zval* orig_key, zval* normalized_key, zval* valu
 
     zval v;
     array_init_size(&v, 2);
-    array_add_new(Z_ARRVAL(v), TSKSTR(TKS_value), value);
-    array_add_new(Z_ARRVAL(v), TSKSTR(TKS_originalKey), orig_key);
+    array_key_add_new(Z_ARRVAL(v), TSKSTR(TKS_value), value);
+    array_key_add_new(Z_ARRVAL(v), TSKSTR(TKS_originalKey), orig_key);
 
     turboslim_Collection_set(this_ptr, normalized_key, &v);
     zval_ptr_dtor(&v);
@@ -289,10 +280,12 @@ static ZEND_METHOD(TurboSlim_Http_Headers, set)
     zend_string* key;
     zval* value;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STR(key)
         Z_PARAM_ZVAL(value)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     zval o;
     ZVAL_STR(&o, key);
@@ -308,11 +301,13 @@ static ZEND_METHOD(TurboSlim_Http_Headers, get)
     zend_string* key;
     zval* def = NULL;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STR(key)
         Z_PARAM_OPTIONAL
         Z_PARAM_ZVAL_EX(def, 1, 0)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     zval normalized;
     normalize_key(&normalized, key);
@@ -342,11 +337,13 @@ static ZEND_METHOD(TurboSlim_Http_Headers, getOriginalKey)
     zend_string* key;
     zval* def = NULL;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STR(key)
         Z_PARAM_OPTIONAL
         Z_PARAM_ZVAL_EX(def, 1, 0)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     zval normalized;
     normalize_key(&normalized, key);
@@ -429,9 +426,11 @@ static ZEND_METHOD(TurboSlim_Http_Headers, has)
 {
     zend_string* key;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(key)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     zval normalized;
     normalize_key(&normalized, key);
@@ -448,9 +447,11 @@ static ZEND_METHOD(TurboSlim_Http_Headers, remove)
 {
     zend_string* key;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(key)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     zval normalized;
     normalize_key(&normalized, key);
@@ -464,9 +465,11 @@ static ZEND_METHOD(TurboSlim_Http_Headers, normalizeKey)
 {
     zend_string* key;
 
+    /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(key)
     ZEND_PARSE_PARAMETERS_END();
+    /* LCOV_EXCL_BR_STOP */
 
     normalize_key(return_value, key);
 }

@@ -37,7 +37,7 @@ static PHP_RINIT_FUNCTION(turboslim)
     }
 #endif
 
-    return SUCCESS;
+    return init_request();
 }
 
 static PHP_RSHUTDOWN_FUNCTION(turboslim)

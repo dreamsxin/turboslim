@@ -7,8 +7,18 @@ use TurboSlim\Tests\Helpers\SerializeCompareTestTrait;
 
 class CollectionTest extends \PHPUnit\Framework\TestCase
 {
+    /**
+     * @var Collection
+     */
+    protected $bag;
+
     use CloneCompareTestTrait;
     use SerializeCompareTestTrait;
+
+    public function setUp()
+    {
+        $this->bag = new Collection();
+    }
 
     public function testConstruct()
     {
@@ -111,5 +121,138 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
     {
         $obj = new Collection(['a' => 'b']);
         $this->checkSerializeCompare($obj);
+    }
+
+    // Tests adapted from Slim
+
+    public function testInitializeWithData()
+    {
+        $expected = ['foo' => 'bar'];
+        $bag      = new Collection($expected);
+        $this->assertEquals($expected, $bag->all());
+    }
+
+    public function testSet()
+    {
+        $this->bag->set('foo', 'bar');
+        $bag = $this->bag->all();
+        $this->assertArrayHasKey('foo', $bag);
+        $this->assertEquals('bar', $bag['foo']);
+    }
+
+    public function testOffsetSet()
+    {
+        $this->bag['foo'] = 'bar';
+        $this->assertArrayHasKey('foo', $this->bag->all());
+        $bag = $this->bag->all();
+        $this->assertEquals('bar', $bag['foo']);
+    }
+
+    public function testGet()
+    {
+        $this->bag->set('foo', 'bar');
+        $this->assertEquals('bar', $this->bag->get('foo'));
+    }
+
+    public function testGetWithDefault()
+    {
+        $this->bag->set('foo', 'bar');
+        $this->assertEquals('default', $this->bag->get('abc', 'default'));
+    }
+
+    public function testReplace()
+    {
+        $this->bag->replace([
+            'abc' => '123',
+            'foo' => 'bar',
+        ]);
+
+        $bag = $this->bag->all();
+        $this->assertArrayHasKey('abc', $bag);
+        $this->assertArrayHasKey('foo', $bag);
+        $this->assertEquals('123', $bag['abc']);
+        $this->assertEquals('bar', $bag['foo']);
+    }
+
+    public function testAll()
+    {
+        $data = [
+            'abc' => '123',
+            'foo' => 'bar',
+        ];
+
+        $this->bag->replace($data);
+        $this->assertEquals($data, $this->bag->all());
+    }
+
+    public function testKeys()
+    {
+        $data = [
+            'abc' => '123',
+            'foo' => 'bar',
+        ];
+
+        $this->bag->replace($data);
+        $this->assertEquals(['abc', 'foo'], $this->bag->keys());
+    }
+
+    public function testHas()
+    {
+        $this->bag->set('foo', 'bar');
+        $this->assertTrue($this->bag->has('foo'));
+        $this->assertFalse($this->bag->has('abc'));
+    }
+
+    public function testOffsetExists()
+    {
+        $this->bag->set('foo', 'bar');
+        $this->assertTrue(isset($this->bag['foo']));
+    }
+
+    public function testRemove()
+    {
+        $data = [
+            'abc' => '123',
+            'foo' => 'bar',
+        ];
+        $this->bag->replace($data);
+        $this->bag->remove('foo');
+        $this->assertEquals(['abc' => '123'], $this->bag->all());
+        $this->assertNotEquals($data, $this->bag->all());
+    }
+
+    public function testOffsetUnset()
+    {
+        $data = [
+            'abc' => '123',
+            'foo' => 'bar',
+        ];
+        $this->bag->replace($data);
+        unset($this->bag['foo']);
+        $this->assertEquals(['abc' => '123'], $this->bag->all());
+        $this->assertNotEquals($data, $this->bag->all());
+    }
+
+    public function testClear()
+    {
+        $data = [
+            'abc' => '123',
+            'foo' => 'bar',
+        ];
+        $this->bag->replace($data);
+        $this->bag->clear();
+        $this->assertEquals([], $this->bag->all());
+    }
+
+    public function testCount()
+    {
+        $data = [
+            'abc' => '123',
+            'foo' => 'bar',
+        ];
+        $this->bag->replace($data);
+
+        $this->assertEquals(2, $this->bag->count());
+        $this->assertEquals(2, count($this->bag));
     }
 }

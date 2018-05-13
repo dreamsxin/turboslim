@@ -9,6 +9,7 @@
 #include <ext/spl/spl_array.h>
 #include <ext/spl/spl_exceptions.h>
 #include <ext/standard/php_var.h>
+#include "utils/array.h"
 #include "persistent.h"
 #include "utils.h"
 
@@ -46,6 +47,7 @@ static void handle_inheritance(collection_t* v, zend_class_entry* ce)
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetget"));
         f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("get"));
         v->opt.fast_readdim = (f1->common.scope == ce_TurboSlim_Collection && f2->common.scope == ce_TurboSlim_Collection);
+        v->opt.fast_get     = f2->common.scope == ce_TurboSlim_Collection;
 
         f1 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("offsetset"));
         f2 = zend_hash_str_find_ptr(&ce->function_table, ZEND_STRL("set"));
@@ -68,6 +70,7 @@ static void handle_inheritance(collection_t* v, zend_class_entry* ce)
         v->opt.fast_hasdim   = 1;
         v->opt.fast_unsetdim = 1;
         v->opt.fast_count    = 1;
+        v->opt.fast_get      = 1;
     }
 }
 
@@ -106,7 +109,7 @@ static zval* read_dimension(zval* data, zval* offset, int type, zval *rv)
     }
     else {
         z      = NULL;
-        offset = &znull;
+        offset = &EG(uninitialized_zval);
     }
 
     if (!z) {
@@ -162,8 +165,7 @@ static void write_dimension(zval* data, zval* offset, zval* value)
         array_set_zval_key(Z_ARRVAL_P(data), offset, value);
     }
     else {
-        Z_TRY_ADDREF_P(value);
-        zend_hash_next_index_insert(Z_ARRVAL_P(data), value);
+        array_append(Z_ARRVAL_P(data), value);
     }
 }
 
@@ -249,15 +251,59 @@ zend_object_iterator* turboslim_collection_get_iterator(zend_class_entry* ce, zv
     return it;
 }
 
+TURBOSLIM_ATTR_NONNULL static void slow_replace(zend_object* zobj, zval* this_ptr, HashTable* items)
+{
+    zend_hash_key key;
+    zval* val;
+
+    zend_function* f = zend_hash_str_find_ptr(&zobj->ce->function_table, ZEND_STRL("set"));
+    ZEND_HASH_FOREACH_KEY_VAL(items, key.h, key.key, val) {
+        zval k;
+        hash_key_to_zval(&k, &key);
+        zend_call_method(this_ptr, zobj->ce, &f, ZEND_STRL("set"), NULL, 2, &k, val);
+        if (UNEXPECTED(EG(exception))) {
+            break;
+        }
+    } ZEND_HASH_FOREACH_END();
+}
+
+TURBOSLIM_ATTR_NONNULL static void construct(zval* this_ptr, HashTable* items)
+{
+    zend_object* zobj = Z_OBJ_P(this_ptr);
+    zval* data        = get_data(zobj);
+
+    if (collection_from_zobj(zobj)->opt.fast_writedim) {
+        zend_hash_copy(Z_ARRVAL_P(data), items, zval_add_ref);
+    }
+    else {
+        slow_replace(zobj, this_ptr, items);
+    }
+}
+
+TURBOSLIM_ATTR_NONNULL static void replace(zval* this_ptr, HashTable* items)
+{
+    zend_object* zobj = Z_OBJ_P(this_ptr);
+    zval* data        = get_data(zobj);
+    zend_hash_key key;
+    zval* val;
+
+    if (collection_from_zobj(zobj)->opt.fast_writedim) {
+        SEPARATE_ARRAY(data);
+        ZEND_HASH_FOREACH_KEY_VAL(items, key.h, key.key, val) {
+            array_hashkey_update(Z_ARRVAL_P(data), &key, val);
+        } ZEND_HASH_FOREACH_END();
+    }
+    else {
+        slow_replace(zobj, this_ptr, items);
+    }
+}
+
 /*
  * public function __construct(array $items = [])
  */
 static PHP_METHOD(TurboSlim_Collection, __construct)
 {
-    HashTable* items  = NULL;
-    zval* this_ptr    = get_this(execute_data);
-    zend_object* zobj = Z_OBJ_P(this_ptr);
-    zval* data        = get_data(zobj);
+    HashTable* items = NULL;
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -267,26 +313,7 @@ static PHP_METHOD(TurboSlim_Collection, __construct)
     /* LCOV_EXCL_BR_STOP */
 
     if (items) {
-        if (collection_from_zobj(zobj)->opt.fast_writedim) {
-            zend_hash_copy(Z_ARRVAL_P(data), items, zval_add_ref);
-        }
-        else {
-            zend_ulong h;
-            zend_string* key;
-            zval* v;
-            zend_function* f = NULL;
-            ZEND_HASH_FOREACH_KEY_VAL(items, h, key, v) {
-                zval k;
-                if (key) {
-                    ZVAL_STR(&k, key);
-                }
-                else {
-                    ZVAL_LONG(&k, h);
-                }
-
-                zend_call_method(this_ptr, Z_OBJCE_P(this_ptr), &f, ZEND_STRL("set"), NULL, 2, &k, v);
-            } ZEND_HASH_FOREACH_END();
-        }
+        construct(get_this(execute_data), items);
     }
 }
 
@@ -350,13 +377,7 @@ static PHP_METHOD(TurboSlim_Collection, get)
  */
 static PHP_METHOD(TurboSlim_Collection, replace)
 {
-    zval* this_ptr    = get_this(execute_data);
-    zend_object* zobj = Z_OBJ_P(this_ptr);
-    zval* data        = get_data(zobj);
     HashTable* items;
-    zend_ulong h;
-    zend_string* key;
-    zval* val;
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -364,16 +385,7 @@ static PHP_METHOD(TurboSlim_Collection, replace)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    SEPARATE_ARRAY(data);
-    ZEND_HASH_FOREACH_KEY_VAL(items, h, key, val)
-        Z_TRY_ADDREF_P(val);
-        if (!key) {
-            zend_hash_index_update(Z_ARRVAL_P(data), h, val);
-        }
-        else {
-            zend_hash_update(Z_ARRVAL_P(data), key, val);
-        }
-    ZEND_HASH_FOREACH_END();
+    replace(get_this(execute_data), items);
 }
 
 /*
@@ -515,15 +527,21 @@ static PHP_METHOD(TurboSlim_Collection, offsetGet)
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_ZVAL_EX(key, 1, 0)
+        Z_PARAM_ZVAL(key)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    zval* this_ptr  = get_this(execute_data);
-    zval* data      = get_data(Z_OBJ_P(this_ptr));
-    zval* res       = read_dimension(data, key, key ? BP_VAR_W : BP_VAR_RW, return_value);
-    if (res != return_value) {
-        ZVAL_COPY(return_value, res);
+    zval* this_ptr    = get_this(execute_data);
+    zend_object* zobj = Z_OBJ_P(this_ptr);
+    if (collection_from_zobj(zobj)->opt.fast_get) {
+        zval* data = get_data(zobj);
+        zval* res  = read_dimension(data, key, key ? BP_VAR_W : BP_VAR_RW, return_value);
+        if (res != return_value) {
+            ZVAL_COPY(return_value, res);
+        }
+    }
+    else {
+        zend_call_method(this_ptr, zobj->ce, NULL, ZEND_STRL("get"), return_value, 1, key, NULL);
     }
 }
 
@@ -537,14 +555,20 @@ static PHP_METHOD(TurboSlim_Collection, offsetSet)
 
     /* LCOV_EXCL_BR_START */
     ZEND_PARSE_PARAMETERS_START(2, 2)
-        Z_PARAM_ZVAL_EX(key, 1, 0)
+        Z_PARAM_ZVAL(key)
         Z_PARAM_ZVAL(value)
     ZEND_PARSE_PARAMETERS_END();
     /* LCOV_EXCL_BR_STOP */
 
-    zval* this_ptr  = get_this(execute_data);
-    zval* data      = get_data(Z_OBJ_P(this_ptr));
-    write_dimension(data, key, value);
+    zval* this_ptr    = get_this(execute_data);
+    zend_object* zobj = Z_OBJ_P(this_ptr);
+    if (collection_from_zobj(zobj)->opt.fast_writedim) {
+        zval* data = get_data(zobj);
+        write_dimension(data, key, value);
+    }
+    else {
+        zend_call_method(this_ptr, zobj->ce, NULL, ZEND_STRL("set"), NULL, 2, key, value);
+    }
 }
 
 /*
@@ -624,12 +648,8 @@ void turboslim_Collection_create(zval* return_value, zend_class_entry* ce, zval*
 {
     assert(instanceof_function_ex(ce, ce_TurboSlim_Interfaces_CollectionInterface, 1));
     object_init_ex(return_value, ce);
-
-    zend_object* zobj = Z_OBJ_P(return_value);
-    zval* data        = get_data(zobj);
-
     if (items && Z_TYPE_P(items) == IS_ARRAY) {
-        zend_hash_copy(Z_ARRVAL_P(data), Z_ARRVAL_P(items), zval_add_ref);
+        construct(return_value, Z_ARRVAL_P(items));
     }
 }
 

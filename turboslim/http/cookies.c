@@ -79,13 +79,13 @@ zend_object* turboslim_http_cookies_create_object(zend_class_entry* ce)
     array_init_size(defaults, 8);
     Z_TRY_ADDREF(zempty);
     zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_value),    &zempty);
-    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_domain),   &znull);
-    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_hostonly), &znull);
-    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_path),     &znull);
-    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_expires),  &znull);
+    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_domain),   &EG(uninitialized_zval));
+    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_hostonly), &EG(uninitialized_zval));
+    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_path),     &EG(uninitialized_zval));
+    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_expires),  &EG(uninitialized_zval));
     zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_secure),   &zfalse);
     zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_httponly), &zfalse);
-    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_samesite), &znull);
+    zend_hash_add_new(Z_ARRVAL_P(defaults), TSKSTR(TKS_samesite), &EG(uninitialized_zval));
 
     return v;
 }
