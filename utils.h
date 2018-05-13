@@ -259,4 +259,20 @@ TURBOSLIM_ATTR_NONNULL static inline zend_bool is_public_property(zval* object, 
     return 0;
 }
 
+TURBOSLIM_ATTR_NONNULL static inline void array_add_new(HashTable* ht, zend_string* key, zval* value)
+{
+    value = zend_hash_add_new(ht, key, value);
+    if (value) {
+        Z_TRY_ADDREF_P(value);
+    }
+}
+
+TURBOSLIM_ATTR_NONNULL static inline void array_update(HashTable* ht, zend_string* key, zval* value)
+{
+    value = zend_hash_update(ht, key, value);
+    if (value) {
+        Z_TRY_ADDREF_P(value);
+    }
+}
+
 #endif /* UTILS_H */

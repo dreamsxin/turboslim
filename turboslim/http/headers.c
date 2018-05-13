@@ -3,7 +3,6 @@
 #include <Zend/zend_interfaces.h>
 #include <ext/standard/php_array.h>
 #include <ext/standard/php_string.h>
-#include <ext/standard/php_var.h>
 #include "turboslim/collection.h"
 #include "turboslim/interfaces.h"
 #include "functions.h"
@@ -68,9 +67,8 @@ TURBOSLIM_ATTR_NONNULL TURBOSLIM_ATTR_RETURNS_NONNULL zend_string* lctr(zend_str
             *r = '\0';
             return res;
         }
-        else {
-            ++c;
-        }
+
+        ++c;
     }
 
     return zend_string_copy(s);
@@ -83,11 +81,11 @@ TURBOSLIM_ATTR_NONNULL static void normalize_key(zval* return_value, zend_string
     /* if (strpos($key, 'http-') === 0) { */
     if (ZSTR_LEN(new_key) >= 5 && !memcmp(ZSTR_VAL(new_key), "http-", 5)) {
         /* $key = substr($key, 5); */
-        RETVAL_STR(zend_string_init(ZSTR_VAL(new_key) + 5, ZSTR_LEN(new_key) - 5, 0));
+        ZVAL_STRINGL(return_value, ZSTR_VAL(new_key) + 5, ZSTR_LEN(new_key) - 5);
         zend_string_release(new_key);
     }
     else {
-        RETVAL_STR(new_key);
+        ZVAL_STR(return_value, new_key);
     }
 }
 
@@ -117,18 +115,21 @@ TURBOSLIM_ATTR_NONNULL static void determineAuthorization(zval* environment)
 
         zend_function* func = zend_hash_str_find_ptr(CG(function_table), ZEND_STRL("getallheaders"));
         if (!func) {
+            zval_ptr_dtor(&auth);
             return;
         }
 
         /* $headers = getallheaders(); */
         zend_call_method(NULL, NULL, &func, ZEND_STRL("getallheaders"), &headers, 0, NULL, NULL);
         if (UNEXPECTED(EG(exception))) {
+            zval_ptr_dtor(&auth);
             return;
         }
 
         /* $headers = array_change_key_case($headers, CASE_LOWER); */
         array_lowercase_keys(&lcheaders, &headers);
         zval_ptr_dtor(&headers);
+        zval_ptr_dtor(&auth);
 
         /* if (isset($headers['authorization'])) { */
         zval* z = zend_hash_find(Z_ARRVAL(lcheaders), TSKSTR(TKS_authorization));
@@ -143,7 +144,10 @@ TURBOSLIM_ATTR_NONNULL static void determineAuthorization(zval* environment)
         }
 
         zval_ptr_dtor(&lcheaders);
+        return;
     }
+
+    zval_ptr_dtor(&auth);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, createFromEnvironment)
@@ -160,16 +164,18 @@ static ZEND_METHOD(TurboSlim_Http_Headers, createFromEnvironment)
     }
 
     zval arr;
-    zval z;
-    ZVAL_NEW_ARR(&arr);
-    zend_hash_init(Z_ARRVAL(arr), 8, NULL, ZVAL_PTR_DTOR, 0);
-    ZVAL_LONG(&z, 1);
-    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_TYPE"), &z ZEND_FILE_LINE_CC);
-    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_LENGTH"), &z ZEND_FILE_LINE_CC);
-    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_USER"), &z ZEND_FILE_LINE_CC);
-    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_PW"), &z ZEND_FILE_LINE_CC);
-    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_DIGEST"), &z ZEND_FILE_LINE_CC);
-    _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("AUTH_TYPE"), &z ZEND_FILE_LINE_CC);
+    {
+        zval z;
+        ZVAL_NEW_ARR(&arr);
+        zend_hash_init(Z_ARRVAL(arr), 8, NULL, ZVAL_PTR_DTOR, 0);
+        ZVAL_LONG(&z, 1);
+        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_TYPE"), &z ZEND_FILE_LINE_CC);
+        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("CONTENT_LENGTH"), &z ZEND_FILE_LINE_CC);
+        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_USER"), &z ZEND_FILE_LINE_CC);
+        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_PW"), &z ZEND_FILE_LINE_CC);
+        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("PHP_AUTH_DIGEST"), &z ZEND_FILE_LINE_CC);
+        _zend_hash_str_add_new(Z_ARRVAL(arr), ZEND_STRL("AUTH_TYPE"), &z ZEND_FILE_LINE_CC);
+    }
 
 
     zval* special = zend_read_static_property(ce_TurboSlim_Http_Headers, ZEND_STRL("special"), 1);
@@ -200,13 +206,17 @@ static ZEND_METHOD(TurboSlim_Http_Headers, createFromEnvironment)
                            (ZSTR_LEN(key_upper) > 5 && !memcmp(ZSTR_VAL(key_upper), "HTTP_", 5) && !zend_string_equals_literal(key_upper, "HTTP_CONTENT_LENGTH"))
                         || zend_hash_exists(Z_ARRVAL_P(special), key_upper)
                     ) {
-                        zend_call_method(return_value, ce_TurboSlim_Http_Headers, &f, ZEND_STRL("set"), NULL, 2, &key, value);
+                        zval ku;
+                        ZVAL_STR(&ku, key_upper);
+                        zend_call_method(return_value, ce_TurboSlim_Http_Headers, &f, ZEND_STRL("set"), NULL, 2, &ku, value);
                     }
 
                     zend_string_release(key_upper);
                 }
 
-                it->funcs->move_forward(it);
+                if (!EG(exception)) {
+                    it->funcs->move_forward(it);
+                }
             }
 
             zval_ptr_dtor(&key);
@@ -243,40 +253,35 @@ static ZEND_METHOD(TurboSlim_Http_Headers, all)
             zval* value    = zend_hash_find(Z_ARRVAL_P(entry), TSKSTR(TKS_value));
 
             if (orig_key && value && Z_TYPE_P(orig_key) == IS_STRING) {
-                value = zend_hash_update(Z_ARRVAL_P(return_value), Z_STR_P(orig_key), value);
-                if (value) {
-                    Z_TRY_ADDREF_P(value);
-                }
+                array_update(Z_ARRVAL_P(return_value), Z_STR_P(orig_key), value);
             }
         }
     } ZEND_HASH_FOREACH_END();
 }
 
-static void set(zval* this_ptr, zend_string* key, zval* value)
+static void set(zval* this_ptr, zval* orig_key, zval* normalized_key, zval* value)
 {
+    zval vtmp;
+    ZVAL_UNDEF(&vtmp);
     if (Z_TYPE_P(value) != IS_ARRAY) {
-        convert_to_array(value);
+        ZVAL_COPY(&vtmp, value);
+        convert_to_array(&vtmp);
+        if (UNEXPECTED(EG(exception))) {
+            zval_ptr_dtor(&vtmp);
+            return;
+        }
+
+        value = &vtmp;
     }
 
     zval v;
-    zval k;
-    zval* z;
     array_init_size(&v, 2);
+    array_add_new(Z_ARRVAL(v), TSKSTR(TKS_value), value);
+    array_add_new(Z_ARRVAL(v), TSKSTR(TKS_originalKey), orig_key);
 
-    z = zend_hash_add_new(Z_ARRVAL(v), TSKSTR(TKS_value), value);
-    if (z) {
-        Z_TRY_ADDREF_P(z);
-    }
-
-    ZVAL_STR(&k, key);
-    z = zend_hash_add_new(Z_ARRVAL(v), TSKSTR(TKS_originalKey), &k);
-    if (z) {
-        Z_TRY_ADDREF_P(z);
-    }
-
-    normalize_key(&k, key);
-    turboslim_Collection_set(this_ptr, &k, &v);
+    turboslim_Collection_set(this_ptr, normalized_key, &v);
     zval_ptr_dtor(&v);
+    zval_ptr_dtor(&vtmp);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, set)
@@ -289,7 +294,13 @@ static ZEND_METHOD(TurboSlim_Http_Headers, set)
         Z_PARAM_ZVAL(value)
     ZEND_PARSE_PARAMETERS_END();
 
-    set(get_this(execute_data), key, value);
+    zval o;
+    ZVAL_STR(&o, key);
+
+    zval k;
+    normalize_key(&k, key);
+    set(get_this(execute_data), &o, &k, value);
+    zval_ptr_dtor(&k);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, get)
@@ -313,13 +324,17 @@ static ZEND_METHOD(TurboSlim_Http_Headers, get)
     zval_ptr_dtor(&normalized);
     if (Z_TYPE(z) != IS_ARRAY || (v = zend_hash_find(Z_ARRVAL(z), TSKSTR(TKS_value))) == NULL) {
         if (def) {
-            RETURN_ZVAL(def, 1, 0);
+            RETVAL_ZVAL(def, 1, 0);
         }
-
-        RETURN_NULL();
+        else {
+            RETVAL_NULL();
+        }
+    }
+    else {
+        RETVAL_ZVAL(v, 1, 0);
     }
 
-    RETURN_ZVAL(v, 1, 0);
+    zval_ptr_dtor(&z);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, getOriginalKey)
@@ -343,13 +358,17 @@ static ZEND_METHOD(TurboSlim_Http_Headers, getOriginalKey)
     zval_ptr_dtor(&normalized);
     if (Z_TYPE(z) != IS_ARRAY || (v = zend_hash_find(Z_ARRVAL(z), TSKSTR(TKS_originalKey))) == NULL) {
         if (def) {
-            RETURN_ZVAL(def, 1, 0);
+            RETVAL_ZVAL(def, 1, 0);
         }
-
-        RETURN_NULL();
+        else {
+            RETVAL_NULL();
+        }
+    }
+    else {
+        RETVAL_ZVAL(v, 1, 0);
     }
 
-    RETURN_ZVAL(v, 1, 0);
+    zval_ptr_dtor(&z);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, add)
@@ -396,10 +415,14 @@ static ZEND_METHOD(TurboSlim_Http_Headers, add)
         ZVAL_COPY(&old_values, &new_values);
     }
 
-    set(this_ptr, Z_STR(normalized), &old_values);
+    zval o;
+    ZVAL_STR(&o, key);
+
+    set(this_ptr, &o, &normalized, &old_values);
     zval_ptr_dtor(&normalized);
     zval_ptr_dtor(&old_values);
     zval_ptr_dtor(&new_values);
+    zval_ptr_dtor(&z);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, has)
@@ -417,7 +440,8 @@ static ZEND_METHOD(TurboSlim_Http_Headers, has)
     zval* this_ptr = get_this(execute_data);
     turboslim_Collection_get(&z, this_ptr, &normalized);
     zval_ptr_dtor(&normalized);
-    RETURN_BOOL(Z_TYPE(z) == IS_ARRAY);
+    RETVAL_BOOL(Z_TYPE(z) == IS_ARRAY);
+    zval_ptr_dtor(&z);
 }
 
 static ZEND_METHOD(TurboSlim_Http_Headers, remove)
